@@ -1,15 +1,15 @@
+# Dependencies
+markdown:         kramdown
+highlighter:      rouge
 
-markdown: kramdown
-plugins:
-  - jekyll-paginate
-  - jekyll-feed
-  - jekyll-seo-tag
+# Permalinks
+permalink:        pretty
 
 # Setup
 title:            Suraj Verma
 tagline:          Engineering
-description:      Software Engineer | Learning stuff... 
-url:              https://surajv311.github.io/
+description:      Software Engineer | Learning stuff...
+url:              https://surajv311.github.io
 baseurl:          ""
 
 author:
@@ -23,3 +23,9 @@ version:          1.0.0
 
 github:
   repo:           https://github.com/Surajv311/surajv311.github.io
+
+# Plugins
+plugins:
+  - jekyll-paginate
+  - jekyll-feed
+  - jekyll-seo-tag

@@ -1,13 +1,16 @@
-# Permalinks
-permalink:        pretty
-relative_permalinks: true
+
+markdown: kramdown
+plugins:
+  - jekyll-paginate
+  - jekyll-feed
+  - jekyll-seo-tag
 
 # Setup
 title:            Suraj Verma
 tagline:          Engineering
 description:      Software Engineer | Learning stuff... 
 url:              https://surajv311.github.io/
-baseurl:          /
+baseurl:          ""
 
 author:
   name:           'Suraj Verma'

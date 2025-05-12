@@ -47,17 +47,17 @@ body {
   padding: 0;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Droid+Sans:wght@400;700&display=swap');
 
 html {
-  font-family: 'Roboto', sans-serif;
+  font-family: 'CMS', 'Droid Sans', Helvetica, Arial, sans-serif;
   font-size: 16px;
   line-height: 1.5;
 }
 
 /* If you want to change heading fonts separately */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Roboto', sans-serif;
+  font-family: 'CMS', 'Droid Sans', Helvetica, Arial, sans-serif;
 }
 
 @media (min-width: 38em) {
@@ -397,7 +397,7 @@ tbody tr:nth-child(odd) th {
   overflow: hidden; /* clearfix */
   margin-left: -1rem;
   margin-right: -1rem;
-  font-family: "PT Sans", Helvetica, Arial, sans-serif;
+  font-family: 'CMS', 'Droid Sans', Helvetica, Arial, sans-serif;
   color: #ccc;
   text-align: center;
 }

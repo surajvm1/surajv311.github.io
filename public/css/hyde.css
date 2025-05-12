@@ -31,7 +31,8 @@
  * Update the foundational and global aspects of the page.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Droid+Sans:wght@400;700&display=swap');
+@import url("https://colah.github.io/fonts/Serif/cmun-serif.css");
+@import url("https://colah.github.io/fonts/Serif-Slanted/cmun-serif-slanted.css");
 
 html {
   font-family: 'CMS', 'Droid Sans', Helvetica, Arial, sans-serif; /* Change to your preferred font */

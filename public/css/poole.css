@@ -47,11 +47,19 @@ body {
   padding: 0;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+
 html {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 16px;
   line-height: 1.5;
 }
+
+/* If you want to change heading fonts separately */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Roboto', sans-serif;
+}
+
 @media (min-width: 38em) {
   html {
     font-size: 20px;

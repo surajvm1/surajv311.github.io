@@ -1,0 +1,26 @@
+# Dependencies
+markdown:         redcarpet
+highlighter:      pygments
+
+# Permalinks
+permalink:        pretty
+relative_permalinks: true
+
+# Setup
+title:            Suraj Verma
+tagline:          Engineering
+description:      Software Engineer | Learning stuff... 
+url:              https://surajv311.github.io/
+baseurl:          /
+
+author:
+  name:           'Suraj Verma'
+  url:            https://in.linkedin.com/in/surajverma-sv
+
+paginate:         5
+
+# Custom vars
+version:          1.0.0
+
+github:
+  repo:           https://github.com/Surajv311/surajv311.github.io

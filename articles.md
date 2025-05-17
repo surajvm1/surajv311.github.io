@@ -7,10 +7,10 @@ title: Articles
   Includes, blogs I wrote in distant past, present day musings and learnings.
 </p>
 
-### Articles
+### Tech learnings... 
 <ul>
   {% for post in site.posts %}
-    {% if post.category == "articles" %}
+    {% if post.category == "technicalArticles" %}
       <li>
         <a href="{{ post.url }}">{{ post.title }}</a> - <small>{{ post.date | date_to_string }}</small>
       </li>
@@ -18,10 +18,10 @@ title: Articles
   {% endfor %}
 </ul>
 
-### Musings
+### Non-tech learnings... 
 <ul>
   {% for post in site.posts %}
-    {% if post.category == "musings" %}
+    {% if post.category == "nonTechArticles" %}
       <li>
         <a href="{{ post.url }}">{{ post.title }}</a> - <small>{{ post.date | date_to_string }}</small>
       </li>
@@ -29,10 +29,10 @@ title: Articles
   {% endfor %}
 </ul>
 
-### Learnings
+### Super-old learnings... 
 <ul>
   {% for post in site.posts %}
-    {% if post.category == "learnings" %}
+    {% if post.category == "oldArticles" %}
       <li>
         <a href="{{ post.url }}">{{ post.title }}</a> - <small>{{ post.date | date_to_string }}</small>
       </li>

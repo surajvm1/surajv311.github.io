@@ -437,3 +437,19 @@ a.pagination-item:hover {
     border-bottom-right-radius: 4px;
   }
 }
+
+.blog-image {
+  max-width: 85%;  /* Uses only 85% of available width */
+  height: auto;
+  display: block;
+  margin: 1.5rem auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Make images smaller on mobile devices */
+@media (max-width: 30em) {
+  .blog-image {
+    max-width: 100%;  /* Full width on small screens */
+  }
+}

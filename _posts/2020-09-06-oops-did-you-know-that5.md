@@ -4,27 +4,33 @@ title: OOPS! Did you know that?
 category: oldArticles
 ---
 
-When I was learning C++ in my beginning college semesters I faced a lot of confusion in understanding what exactly the concepts of OOPS meant.
-I have made a lot of beginner-level mistakes and learned from them. As time passed by, OOPS became my favorite concept in the C++ language.
+> Article also published in [Hashnode](https://surajv.hashnode.dev/) & [Dev.to](https://dev.to/surajv).
+
+When I was learning C++ in my beginning college semesters I faced a lot of confusion in understanding what exactly the concepts of OOPS meant.<br>
+I have made a lot of beginner-level mistakes and learned from them. As time passed by, OOPS became my favorite concept in the C++ language.<br>
 
 Here I would slide through some of the important concepts in OOPS.
 
-<img src="{{ site.baseurl }}/public/images/oops.jpeg" alt="OOPS" class="blog-image">
+![ops.jpg](https://cdn.hashnode.com/res/hashnode/image/upload/v1599394653986/Ht5gf26--.jpeg)
 
-Before diving into the basics of OOPS, Its important to know what is a Class and an Object.
-- Class: It is a user-defined datatype that has member functions and different data variables. Memory is allocated to the Class only when an Object is defined.
-- Object: It is an instance of the Class. In simple words, it is the blueprint of the Class.
+Before diving into the basics of OOPS, Its important to know what is a **Class** and an **Object**.
 
-{% highlight js %}
- // header files 
+* **Class**:
+It is a user-defined datatype that has member functions and different data variables. Memory is allocated to the Class only when an Object is defined.
+
+* **Object**:
+It is an instance of the Class. In simple words, it is the blueprint of the Class.
+
+```
+// header files 
 class Class_name
 { 
 /*
 Access specifier 
 public variables: can be accessed from everywhere
 protected variables: can be accessed by the classes of the same package
-private variables: can be accessed within the same class only. 
-->This is helpful when you learn the concept of Abstraction in OOPS.
+private variables: can be accessed within the same class only.
+->This is helpful when you learn the concept of Abstraction in OOPS. 
 */
 public: 
 
@@ -37,29 +43,31 @@ void print_function()
 cout << "Value of variable is :" << variable_A; 
 } 
 }; 
-
+  
 main() { 
-
+  
 // declaring object <Syntax: Class_name object_name>
 Class_name object;  
 
 /*accessing the variables in class and assigning value to it via object*/
 object.variable_A= 20;  
-
+  
 // accessing member function in class 
 object.print_function(); 
 
-}
-{% endhighlight %}
+} 
+```
 
 Now we will cover the four main concepts in OOPS.
+<br>
 
-- Encapsulation and Abstraction:
+* **Encapsulation and Abstraction**:
 
-In a nutshell, Encapsulation means hiding your data in a package. Abstraction displaying only essential information and hiding the unnecessary details from the client/user.
+In a nutshell, Encapsulation means hiding your data in a package. Abstraction displaying only essential information and hiding the unnecessary details from the client/user. 
+<br>
 Create a separate header file in which you would define your entire class. Then you can access the components of your class using the objects in your main function.
 
-{% highlight js %}
+```
 // header file header.h 
 #include <iostream>
 using namespace std ;
@@ -75,26 +83,27 @@ int Classtwo::functionOne() // defining functionOne outside class
 {
 cout << "functionOne is called(in header file)\n";
 }
-{% endhighlight %}
 
-{% highlight js %}
+```
+``` 
 //main.cpp
 // other header files
 #include "header.h"
 // namespace...
+
 main(){
 /* class Classtwo is in header file*/
 Classtwo objectOne;
 objectOne.functionOne(); 
 cout<< objectOne.var; // would output the value of var 
 }
-{% endhighlight %}
+```
 
-- Inheritance:
+* **Inheritance**:
 
 In a nutshell, the derived class inherits properties from the base class.
 
-{% highlight js %}
+```
 //header files 
 class Base // parent class
 {
@@ -115,17 +124,16 @@ Derived obj; /*object of 'Derived' class can access public components of 'Base '
 
 cout<< obj.number ; 
 //would output the number which is in Base class
-{% endhighlight %}
+```
 
-- Polymorphism:
+* **Polymorphism**:
 
-In a nutshell, it means having different forms. There are two types of polymorphism.
+In a nutshell, it means having different forms. There are two types of polymorphism. <br>
 
--> Runtime Polymorphism:
+-> Runtime Polymorphism:<br>
 
 It happens when we override a function in the program.
-
-{% highlight js %}
+```
 // header files 
 
 class Virtual_one
@@ -179,14 +187,16 @@ objBB->fun_();
 /* Note:
 HERE objBB pointer(of Virtual_two class) carries address of objC(of Virtual_three class). So in objBB->fun_(); The fun_() of Virtual_two class would be working, as objBB pointer belongs to that class.
 But when you add the keyword 'virtual' : The fun_() of Virtual_three class would work. */
-{% endhighlight %}
 
--> Compiletime Polymorphism:
+```
+
+ <br>
+-> Compiletime Polymorphism: <br>
 
 It happens when we overload a function or an operator in the program.
-Consider a case of Operator Overloading:
-
-{% highlight js %}
+<br>
+Consider a case of Operator Overloading: 
+```
 // header files
 class Op_ovrload 
 {
@@ -234,12 +244,10 @@ objC = objA.addTheSet(objB);
 objD = objA + objB;
 /*objC and objD would output the same value. Here '+' has been overloaded*/
 }
-
-{% endhighlight %}
+```
 
 Consider the other case of function overloading:
-
-{% highlight js %}
+```
 // header files 
 
 void printFun(int number) { 
@@ -256,9 +264,10 @@ main()
 printFun(320); 
 printFun(48.95); 
 }
-{% endhighlight %}
+```
 
-With this, we come to an end covering the basic concepts.
+With this, we come to an end covering the basic concepts. <br>
 
-Hope this article has been helpful!
+Hope this article has been helpful! 
 
+---------------------

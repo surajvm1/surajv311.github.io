@@ -56,6 +56,4 @@ If you adapt with time, you’ll reap its benefits otherwise no one can stop you
 
 Amazon has always been improving its reach in various domains since its inception and its focus on customer satisfaction has led it to become one of the top conglomerate companies.
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

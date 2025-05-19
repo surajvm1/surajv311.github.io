@@ -36,6 +36,4 @@ Over the next weeks, there was a nationwide mass massacre of Sikhs as retaliatio
 
 Today there are no such big issues between any communities of India and every learned individual respects the sentiments of others to maintain peace in the country!
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

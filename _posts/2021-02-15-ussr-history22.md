@@ -67,6 +67,4 @@ With the nations in USSR demanding independence, Gorbachev resigned as the leade
 
 Boris Yeltsin became the first president of Russia in 1991.
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

@@ -25,7 +25,9 @@ The 3 pillars of the ASEAN Community as per 2015 norms are the Political-Securit
 In ASEAN led meetings, if they meet with :
 
 1 country — ASEAN + 1 Meet
+
 3 countries — EAST ASIA CAUCASUS Meet
+
 6 countries — RCEP Meet
 
 APEC (Asia-Pacific Economic Cooperation)
@@ -133,7 +135,5 @@ Nigeria is one of the richest countries in Africa.
 India is one of the largest trading partners of Africa with India exporting tons of goods offering services.
 
 African Union (AU) members have signed the African Continental Free Trade Agreement (AfCFTA) for goods and services which is a free trade agreement among the African nations. As of now, 30 members have already ratified the agreement. The agreement was signed at the 12th AU Summit in 2019.
-
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
 
 ----------------

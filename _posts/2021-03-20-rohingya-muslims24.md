@@ -46,6 +46,4 @@ Also, Bangladesh has been trying to relocate its Rohingya Muslim to the silt isl
 
 We all hope that their condition improves soon!
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

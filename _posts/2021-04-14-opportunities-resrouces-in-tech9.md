@@ -299,7 +299,6 @@ Some useful links to practice and learn CP: <br>
 </div>
 
 ---------------------------------------------------
----------------------------------------------------
 
 I hope you found this list useful. 
 If you have a resource/opportunity to share please feel free

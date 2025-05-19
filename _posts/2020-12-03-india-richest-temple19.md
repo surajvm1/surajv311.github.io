@@ -44,6 +44,4 @@ The different architectures in Indian temples are:
 
 I hope with this you could visualize the architecture of the temple :)
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

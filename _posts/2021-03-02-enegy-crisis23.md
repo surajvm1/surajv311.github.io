@@ -50,6 +50,4 @@ You can even check the total oil left in the world by visiting here.
 
 Fun Fact: With our current oil consumption, the world has only around 47 years of oil left.
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

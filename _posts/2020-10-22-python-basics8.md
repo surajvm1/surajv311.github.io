@@ -300,7 +300,6 @@ function = lambda x : x*2
 print("Returning a value twice the passed value:",function(10))
 ```
 
-With this, we have slid through the basics. <br>
-Hope it's been helpful!
+With this, we have slid through the basics.
 
 ----------------

@@ -22,6 +22,4 @@ Recently (in 2020), the Citizenship Amendment Bill was passed by the government 
 
 The public has shown their disinterest in the bill as it indirectly threatens the existing culture in the states of India. It would also bring in resistance to the already existing I.L.P Act as North-Eastern states like Mizoram share borders with Bangladesh. This also led to long protests nationwide. By December 2019, the C.A.A bill was passed and it came into force from 10 January 2020!
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

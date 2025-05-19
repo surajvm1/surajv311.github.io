@@ -112,6 +112,4 @@ The speaker of Lok Sabha is chosen among the presiding MP’s of the lower house
 
 The speaker of Rajya Sabha is the Vice President of the country.
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

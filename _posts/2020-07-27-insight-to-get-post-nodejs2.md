@@ -89,6 +89,4 @@ nodemon server.js
 With this, we have successfully created a basic backend server that can perform get/post requests. 
 In simple words, GET is used to fetch information, and POST is used to push information.
 
-> I hope this simple article on get/post request has been a good read! 
-
 ---------------------

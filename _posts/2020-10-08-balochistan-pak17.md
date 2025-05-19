@@ -36,6 +36,4 @@ From then on Balochistan has been showing resistance to Pakistan and thousands o
 
 As of 2020, Balochistan and Pakistan have been involved in five conflicts right from the year of independence.
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

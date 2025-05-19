@@ -55,6 +55,4 @@ It’s operated by the Indian Space Research Organization (ISRO). It has 7 satel
 
 The satellite system of India was built in response to the denial of the US to offer it’s GPS to assist India during the Kargil War of 1999 with Pakistan. Despite that India won Kargil War pushing Pakistan back and built the satellite system that we know today as NAVIC.
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

@@ -42,6 +42,4 @@ Chief Election Commissioner
 
 Respective State Election Commissioners
 
-I would like to thank my readers for dropping here. I hope the time you spent reading my article has been fruitful.😊
-
 ----------------

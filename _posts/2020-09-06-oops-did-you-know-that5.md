@@ -266,8 +266,4 @@ printFun(48.95);
 }
 ```
 
-With this, we come to an end covering the basic concepts. <br>
-
-Hope this article has been helpful! 
-
 ---------------------

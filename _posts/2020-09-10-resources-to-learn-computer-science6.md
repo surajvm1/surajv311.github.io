@@ -69,7 +69,4 @@ It has got a wonderful list of the number of algorithms used in **competitive pr
 * [AWS Guide (Github repo)](https://github.com/open-guides/og-aws#cloudwatch) 
 A practical guide to learn about AWS Cloud Services. 
 
-<br>
-I hope this has been a useful reference for every reader :)
-
 ---------------------

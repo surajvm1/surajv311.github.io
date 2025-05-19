@@ -22,9 +22,11 @@ Also, I've open-sourced the repository. I would love to have contributors! <br>
 ### Table of contents:
 
 #### Resources
+
 - [Resources](#resource)
 
 #### Opportunities <ins>**for everyone**</ins>
+
 - [Hackathons](#hackathons)
 - [Campus Ambassador Opportunities](#campus-ambassador-opportunities)
 - [Competitive Programming Contests](#competitive-programming-contests)
@@ -34,6 +36,7 @@ Also, I've open-sourced the repository. I would love to have contributors! <br>
 - [Miscellaneous Opportunities](#miscellaneous-opportunities)
 
 #### Opportunities <ins>**exclusively for women**</ins>
+
 - [Scholarship Programs](#scholarship-programs)
 - [Diversity Hiring Programs](#diversity-hiring-programs)
 - [Mentorship Programs](#mentorship-programs)
@@ -73,6 +76,7 @@ Also, I've open-sourced the repository. I would love to have contributors! <br>
 <br>
 
 ### Hackathons:
+
 | Name  | Link | Info | 
 | ------------- | ------------- | ------------- |
 |Microsoft Imagine Cup | [Visit the page](https://imaginecup.microsoft.com/en-us/Events?id=0)  | (Check the website) |
@@ -96,6 +100,7 @@ Some useful links to search for hackathons around you: <br>
 ---------------------------------------------------
 
 ### Campus Ambassador Opportunities: 
+
 | Name  | Link | Info | 
 | ------------- | ------------- | ------------- |
 |Microsoft Learn Student Ambassador | [Visit the page](https://studentambassadors.microsoft.com/)  | Students can apply in any year of their degree course. Applications open throughout the year. |
@@ -117,6 +122,7 @@ Some useful links to search for hackathons around you: <br>
 ---------------------------------------------------
 
 ### Competitive Programming Contests:
+
 | Name  | Link | Info | 
 | ------------- | ------------- | ------------- |
 |Google Hashcode  | [Visit the page](https://codingcompetitions.withgoogle.com/hashcode)  | Applications usually open in January. It's a team-based competitive programming competition. |
@@ -139,6 +145,7 @@ Some useful links to practice and learn CP: <br>
 ---------------------------------------------------
 
 ### Externship Opportunities: 
+
 | Name  | Link | Info | 
 | ------------- | ------------- | ------------- |
 | MLH Externship  | [Visit the page](https://fellowship.mlh.io/programs/externship)  | Applications usually open twice a year for Summer and Spring. Students (& a limited number of non-student professionals) are selected. |
@@ -154,7 +161,9 @@ Some useful links to practice and learn CP: <br>
 ---------------------------------------------------
 
 ### Research Scholarships:
+
 <!-- /Opportunities: -->
+
 | Info  | Link |
 | ------------- | ------------- |
 | (Follow the link) | [Visit the page](https://github.com/Uncodedtech/Research-Internships-for-Undergraduates) |
@@ -168,6 +177,7 @@ Some useful links to practice and learn CP: <br>
 ---------------------------------------------------
 
 ### Open Source Programs:
+
 | Info  | Link |
 | ------------- | ------------- |
 |(Follow the link) | [Visit the page](https://github.com/Uncodedtech/Open-Source-Programs) |
@@ -181,6 +191,7 @@ Some useful links to practice and learn CP: <br>
 ---------------------------------------------------
 
 ### Miscellaneous Opportunities:
+
 <!-- /Scholarships/Internships/Programs**: -->
 
 | Name  | Link | Info | 
@@ -211,7 +222,9 @@ Some useful links to practice and learn CP: <br>
 <br>
 
 ### Scholarship Programs:
+
 <!-- /Fellowship Programs: -->
+
 | Name  | Link | Info | 
 | ------------- | ------------- | ------------- |
 |Nutanix Heart Women in Tech | [Visit the page](https://www.nutanix.com/scholarships)  | Female students from the countries (US, France, Netherland, India, Serbia), are awarded grants for their tuition fees. |
@@ -230,7 +243,9 @@ Some useful links to practice and learn CP: <br>
 -----------------------------------------------------------------------------------------
 
 ### Diversity Hiring Programs:
+
 <!-- /Internship Programs: -->
+
 | Name  | Link | Info | 
 | ------------- | ------------- | ------------- |
 |Flipkart Diversity Hiring | [Visit the page](https://www.flipkartcareers.com/#!/joblist)  | (Check the website) |
@@ -246,7 +261,9 @@ Some useful links to practice and learn CP: <br>
 -----------------------------------------------------------------------------------------
 
 ### Mentorship Programs:
+
 <!-- /Facilitator  -->
+
 | Name  | Link | Info | 
 | ------------- | ------------- | ------------- |
 |Wootech Mentorship | [Visit the page](https://wootechnology.github.io/Website/)  | (Check the website) |
@@ -268,6 +285,7 @@ Some useful links to practice and learn CP: <br>
 -----------------------------------------------------------------------------------------
 
 ### Programming Contests: 
+
 <!-- (comepetitive & hiring) -->
 
 | Name  | Link | Info | 
@@ -286,6 +304,7 @@ Some useful links to practice and learn CP: <br>
 -----------------------------------------------------------------------------------------
 
 ### Hackathon Contests:
+
 | Name  | Link | Info | 
 | ------------- | ------------- | ------------- |
 | Linkedin Wintathon | [Visit the page](https://wintathon2020.splashthat.com/)  | All prefinal & final year BTech/BE Women Students or a 1st / 2nd Year M.Tech Women Students can apply. |
@@ -301,7 +320,6 @@ Some useful links to practice and learn CP: <br>
 ---------------------------------------------------
 
 I hope you found this list useful. 
-If you have a resource/opportunity to share please feel free
-to visit the GitHub [repository](https://github.com/Surajv311/one4All).
+If you have a resource/opportunity to share please feel free to visit the GitHub [repository](https://github.com/Surajv311/one4All).
 
 ---------------------

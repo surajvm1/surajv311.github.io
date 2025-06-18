@@ -644,7 +644,7 @@ Timeline of MAX_POLL_EXCEEDED Error:
 
 Possible solutions would've been: 
 
-- Increase the Timeout. We could relax a lot of other configs as well to handle other scenarios. 
+- Increase the Timeout. We could relax a lot of other configs as well to handle other scenarios. List of configurations for [reference](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md).
 ```python
 config = {
     'max.poll.interval.ms': 900000  # 15 minutes

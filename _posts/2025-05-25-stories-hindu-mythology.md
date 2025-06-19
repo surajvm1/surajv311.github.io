@@ -1,7 +1,7 @@
 ---
 layout: post 
 title: Stories from Hindu Mythology
-category: nonTechArticles
+category: nonTechnicalArticles
 ---
 
 Our mythology has a lot of interesting stories with deep meaning or background. 

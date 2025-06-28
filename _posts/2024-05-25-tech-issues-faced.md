@@ -64,6 +64,8 @@ I think a lot of my learnings actually came from solving issues.
       exit
       ```
     - Issue fix 10: Had a requirement to re-parse old data (of some years) for some events in table. Did an interesting thing, created a temporary backfill workflow and pointed staging to prod tables and (same temporary workflow in prod) prod workflows anyways were inline. And triggered backfill workflows of both envs to prod, which ran non-stop and was loaded; When our other critical workflows were triggered on prod, since our machines were already running heavy with backfill, they did not have resources and when other workflows too got triggered, the over burden killed the machines and there was outage. Had to fix things, and slow down the backfill in chunks and ensuring when critical workflows run, backfill is not running. Of course, this could've been handled in better way. 
+    - Issue fix 11: Had a case where the Airflow PythonOperator task was not recognising the datetime library, this happened because of the new Python version we had upgraded to, which involved using Pendulum library rather so fixed using the same.
+    - Issue fix 12: All task/job logs in Airflow UI disappeared, and were not visible - both current day and earlier day, it was caused due to tinkering/putting bad value in Airflow connections list in the UI. Fixing value there fixed the issue - it was related to a variable having credentials to connect to S3 where logs are persisted.
 
   - Pipeline 2: As seen below, at a high level it's a snapshot batch job pipeline where snapshot/backup of the OLTP Postgres tables is taken everyday and exported to S3, data of it is accessed from different OLAP tables. As running analytical queries on OLTP tables can be heavy. Basically, there is a snapshot scheduled at AWS RDS end for tables everyday. Once the snapshot is ready, there are workflows which export this data.
     - <img src="{{ site.baseurl }}/public/images/rds-data-pipeline.png" alt="Rds data pipeline" class="blog-image">
@@ -72,47 +74,33 @@ I think a lot of my learnings actually came from solving issues.
     - Issue fix 3: Upstream tables in RDS were deprecated, hence when they were exported by the system there was no data causing impact in some of the workflows. Dependency from them was removed. 
     - Issue fix 4: RDS Redshift tables are loaded from parquet data. If there is a mismatch in columns in underlying parquet and the defined table, the new columns are dropped or created with null value + datatype typecasting is done, if no mismatch then data loaded as it is -> Code is designed in such way. In one case, there was a mismatch case, but even after typecasting, loading it to Redshift was giving issue, hence in the end had to create the missing columns so its loaded directly.
       ```
-      # Sample code of typecasting
+      # Sample pseudocode of typecasting
       for field in agg_data_table.fields:
         col = field.name
         if col not in raw_df:
             missing_cols.append(col)
             raw_df[col] = None
         df[col] = raw_df[col].fillna(get_default(field)).astype(get_type(field))
-    
-        def get_type(field):
-            if isinstance(field, Timestamp):
-                return 'datetime64[us]'
-            elif isinstance(field, Integer):
-                return 'int32'
-            elif isinstance(field, BigInt):
-                return int
-            elif isinstance(field, Float):
-                return float
-            elif isinstance(field, Boolean):
-                return bool
-            elif isinstance(field, Varchar):
-                return str
-            elif isinstance(field, JSONVarchar):
-                return str
-            return str
+        
+        def get_type(field): 
+            if isinstance(field, Timestamp) --> return 'datetime64[us]'
+            elif isinstance(field, Integer) --> return 'int32'
+            elif isinstance(field, BigInt) --> return int
+            elif isinstance(field, Float) --> return float
+            elif isinstance(field, Boolean) --> return bool
+            elif isinstance(field, Varchar) --> return str
+            elif isinstance(field, JSONVarchar) --> return str
+            default --> return str
     
         def get_default(field):
-            if isinstance(field, Timestamp):
-                return 'NaT'
-            elif isinstance(field, Integer):
-                return 0
-            elif isinstance(field, BigInt):
-                return 0
-            elif isinstance(field, Float):
-                return 0
-            elif isinstance(field, Boolean):
-                return False
-            elif isinstance(field, Varchar):
-                return ''
-            elif isinstance(field, JSONVarchar):
-                return ''
-            return ''
+            if isinstance(field, Timestamp) --> return 'NaT'
+            elif isinstance(field, Integer) --> return 0
+            elif isinstance(field, BigInt) --> return 0
+            elif isinstance(field, Float) --> return 0
+            elif isinstance(field, Boolean) --> return False
+            elif isinstance(field, Varchar) --> return ''
+            elif isinstance(field, JSONVarchar) --> return ''
+            default --> return ''
       ```
       - Issue fix 5: Received issue in workflow: `An error occurred (ExportTaskLimitReachedFault) when calling the StartExportTask operation: You have reached the limit of 5 concurrent export tasks)`. In short, correction was in the way snapshot export code was defined. Different db's were exported from the RDS cluster in the code. It was defined earlier that for each db export it will initiate an RDS cluster export of which the db is a part of, this caused multiple times export being initiated and raising error from AWS end. Correction was, initiate RDS cluster export once, and export all related db's in it in a single go. RDS snapshot → Specifies the db(s) once export is complete → Later dumps the selected db’s table(s) parquet files to S3. 
         ```
@@ -149,68 +137,21 @@ I think a lot of my learnings actually came from solving issues.
         <img src="{{ site.baseurl }}/public/images/rds-query-optimize.png" alt="RDS query optimize" class="blog-image">
 
   - Other pipelines: 
-    - Issue fix 1: In one pipeline, we had a sqoop workflow in an EC2 machine, which fetched data from external db's to the machine, and dumped it to S3, meanwhile it would clean-up the in-memory data present after that. Sometimes, the data cleanup would not happen properly bringing down the machine, this was checked and fixed. 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - Issue fix 2: We have deployment pipelines built using Concourse. While setting up deployment pipline for a service - wherein in short, code was deployed to EC2 machines using ansible. 
-
-- Issues with Concourse deployment pipeline(s): 
-- 
-- 
-- 
-  - 
-
-There was a case where the Airflow PythonOperator task was not recognising the datetime library, this happened because of the new Python version we had upgraded to, which involved using Pendulum library. 
-We take RDS snapshot from real-time PostgreSQL tables in our S3, these postgres tables are populated by our backend systems APIs. We only have 5 days of data present for these snapshot tables in S3, as there is a policy attached to the S3 folder itself which auto-deletes previous day data. 
-Changes in short from Postgres to Aurora snapshot export in code... cehck
-Faced and debugged few cases with Rohit & have seen earlier as well. Case(s): if a Redshift col name is with name “tag“, it gives error in column creation, in short:
-Tag is a reserved word in Redshift, if you like to use reserved words as column names or aliases you need to use delimited identifiers (double quotes). 
-
-A few days back all logs in Airflow prod disappeared, and were not visible - both current day and earlier day, it was caused due to tinkering/putting bad value in Airflow connections list in UI, specifically SimplS3Conn, fixing the value, brought back the logs: (We got AWS credentials from cloudlift for staging domain, and later populated those values in S3Conn field)
-To view DAG logs in Airflow ssh machine ubuntu@ip...6: Eg: vi /var/log/airflow/dag_id=data_visibility_dag/run_id=scheduled__2024-04-17T04:30:00+00:00/task_id=run_process_ABC# tail -F attempt\=12.log
-
-
-webserver/scheduler/worker - cd /var/log/airflow/airflow_service_logs
-Issue that has been identified is from concourse frontend (which we see UI) → Point A → concourse container → Point B → Bastion server → Point C → Dask machine.  ps -ef put github linux commands links
-In bastion machine: 
-source ~/.venv/ansible_env/bin/activate
-ansible-vault decrypt old.yml --vault-password-file=~/vault_pass_no_prompt
-ansible-vault encrypt new_generated.yml --vault-password-file=~/vault_pass_no_prompt
-(ansible_env) circleci@ip-...:~/repo-name/deploy/ansible/inventories/de-staging/group_vars/all$ ansible-vault decrypt migrated_values.yml --vault-password-file=~/vault_pass_no_prompt
-Decryption successful
-tail -f /var/log/syslog
-In concourse yml: 
-To get latest commit sha in staging: 
-last_merge_commit=$(git reflog | grep 'merge' | head -n 1)
-sha=$(echo $last_merge_commit | awk '{print $4}' | awk -F ":" '{print $1}')
-To get latest commit sha in prod: 
-sha=`git rev-parse HEAD`
-Others: 
-ssh circleci@...
-fly -t data intercept -j etl-pipes/deploy_to_staging_dask
-fly --target ci-devops login --concourse-url https://concourse.getsimpl.co --team-name data
-circleci@ip...: source ~/.venv/ansible_env/bin/activate
-
-(base) ➜ gunzip originalGeoIP2-City.tar.gz ## unzipped the tar file using gunzip to ensure any metadata doesn't get corrupt
-(base) ➜ tar -xvf originalGeoIP2-City.tar ## then expanded the files inside using tar command, We could also use tar -xzvf <> command to unzip the file, but in earlier attempt it was causing problems reading it later on, so better use gunzip to unzip it first
-x GeoIP2-City_20240611/
-x GeoIP2-City_20240611/LICENSE.txt
-x GeoIP2-City_20240611/COPYRIGHT.txt
-x GeoIP2-City_20240611/GeoIP2-City.mmdb
-x GeoIP2-City_20240611/README.txt
-(base) ➜ tar -cvf gunzipTarGeoIP2-City.tar GeoIP2-City_20230512/ ## Next just changed the name of folder and converted the folder files back into a tar file
-a GeoIP2-City_20230512
-a GeoIP2-City_20230512/COPYRIGHT.txt
-a GeoIP2-City_20230512/GeoIP2-City.mmdb
-a GeoIP2-City_20230512/README.txt
-a GeoIP2-City_20230512/LICENSE.txt
-(base) ➜ gzip gunzipTarGeoIP2-City.tar ## Used gunzip to zip back tar file
-
-Then I tried reading code from above earlier code in Databricks - And it worked.
+    - Issue fix 1: In one pipeline, we had a sqoop workflow in an EC2 machine, which fetched data from external db's to the machine, and dumped it to S3, meanwhile it would clean-up the in-memory data present after that. Sometimes, the data cleanup would not happen properly bringing down the machine, this was checked and fixed.
+    - Issue fix 2: We have deployment pipelines built using Concourse. While setting up deployment pipeline for a service - wherein in short, code was deployed to EC2 machines using ansible. There were some secrets stored in ansible vault which had expired. Had to decrypt, change the key, encrypt back the vault and fix. There were some other issues as well, which I have captured in another blog. 
+    - Issue fix 3: Had a flow where data which is about to be loaded to a table is enriched with some zipped mmdb data. Zip had multiple files and mmdb data. One time, there was some corruption in data, had to manually fix it and rerun flow.
+      ```
+      (base) ➜ gunzip file.tar.gz ## unzipped the tar file using gunzip to ensure any metadata doesn't get corrupt
+      (base) ➜ tar -xvf file.tar ## then expanded the files inside using tar command, We could also use tar -xzvf <> command to unzip the file, but in earlier attempt it was causing problems reading the files later on when used for enrichment logic, so better use gunzip to unzip it first
+      ## --- multiple files including data.mmdb, LICENSE.txt, COPYRIGHT.txt, etc.
+      (base) ➜ tar -cvf gunzipTarGeoIP2-City.tar GeoIP2-City_20230512/ ## Converting back 
+      (base) ➜ gzip gunzipTarGeoIP2-City.tar ## Used gunzip to zip back tar file      
+      ```
+    - Issue fix 4: Some pipelines were running queries on Redshift to access/load data. Due to some heavy queries, Redshift got deadlocked. We had to kill queries to release resources (later reran them separately)
+      ```
+      ## To get details around locking queries in Redshift:
+      select * from pg_locks
+      select * from STV_SESSIONS
+      ```
 
 ----------------

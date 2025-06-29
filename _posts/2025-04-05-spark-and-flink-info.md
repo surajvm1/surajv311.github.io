@@ -691,5 +691,66 @@ SingleOutputStreamOperator<ProcessedEvent> joinedStream = eventAMappedStream.key
   - Checkpointing needs to be enabled when using the FileSink in STREAMING mode. Part files can only be finalized on successful checkpoints. If checkpointing is disabled, part files will forever stay in the in-progress or the pending state, and cannot be safely read by downstream systems. Doc: https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/connectors/datastream/file_sink/
   - When we say “exactly-once semantics”, what we mean is that each incoming event affects the final results exactly once. Exactly once applies to the whole ecosystem of connected components. Even in case of a machine or software failure, there’s no duplicate data and no data that goes unprocessed.
     - Flink’s Exactly Once: https://flink.apache.org/2018/02/28/an-overview-of-end-to-end-exactly-once-processing-in-apache-flink-with-apache-kafka-too/
+  - Other Flink functions: 
+    - SingleOutputStream + RichAsyncFunction + Sideoutput combined example:
+      - In short, function takes input stream does some processing and returns output stream. If any error is popped up, it is handled in a side stream. Sample eg: 
+      - ```
+        Eg:
+        
+        public class UpdateUser extends RichAsyncFunction<UserEvent, Either<ProcessingResult, GenericException>> {
+        @Override
+        public void asyncInvoke(UserEvent event, ResultFuture<Either<ProcessingResult, GenericException>> future) throws Exception {
+        try {
+                  // Some business logic...
+                  ProcessingResult output = new ProcessingResult(processedUserData, msg);
+                  future.complete(Collections.singletonList(Either.Left(output)));
+              } catch (Exception e) {
+                  GenericException ex = new GenericException(event, e);
+                  future.complete(Collections.singletonList(Either.Right(ex)));
+                  return;
+              }
+            }
+        }    
+        
+        private SingleOutputStreamOperator<ProcessingResult> updateUserDetails(DataStream<UserEvent> events) {
+                SingleOutputStreamOperator<Either<ProcessingResult, GenericException>> results = AsyncDataStream.unorderedWait(
+                        events,
+                        new UpdateUser(),
+                        600000, TimeUnit.MILLISECONDS
+                ).name(UPDATE_USER_OPERATOR);
+                return results.process(
+                        new ProcessFunction<>() {
+                            /*
+                                The ProcessFunction is a low-level function that provides fine-grained control over the processing of elements in Flink. We are processing the output of the async function call to update user credit limit. If the result is successful, we collect the ProcessingResult. If the result is a failure, we output the GenericException to the side output stream.
+                             */
+                            private static final long serialVersionUID = -8056509330481115777L;
+                            /*
+                                The serialVersionUID is a unique identifier for each class that implements the Serializable interface. It is used during the deserialization process to ensure that a loaded class corresponds exactly to a serialized object. If the serialVersionUID of the loaded class does not match the serialVersionUID of the serialized object, an InvalidClassException is thrown.
+                                In simple words, Java uses this ID to verify that the serialized and deserialized objects are compatible. It helps in version control of the serialized classes. If you modify the class structure (e.g., add/remove fields), you can change the serialVersionUID to indicate that the new version is incompatible with the old serialized objects.
+                                If you do not explicitly declare a serialVersionUID, the JVM will generate one at runtime based on various aspects of the class. This can lead to unexpected InvalidClassException if the class structure changes.
+                             */
+                            @Override
+                            public void processElement(
+                                    Either<ProcessingResult, GenericException> output,
+                                    Context ctx,
+                                    Collector<ProcessingResult> collector) {
+                                if (output.isLeft()) {
+                                    log.debug("Collecting ProcessingResult output");
+                                    collector.collect(output.left());
+                                } else {
+                                    log.debug("Collecting GenericException output");
+                                    ctx.output(
+                                            ExceptionTags.GENERIC_EXCEPTION_OUTPUT_TAG,
+                                            output.right());
+                                }
+                            }
+                        });
+            }
+        
+        // Assuming got extractedEvents from kafka stream and now processing it
+        SingleOutputStreamOperator<ProcessingResult> results = updateUserDetails(extractedEvents); 
+        results.getSideOutput(ExceptionTags.GENERIC_EXCEPTION_OUTPUT_TAG).process(new GenericExceptionRaiseAlertProcessor());
+        ```
 
 --------------------------------------------
+

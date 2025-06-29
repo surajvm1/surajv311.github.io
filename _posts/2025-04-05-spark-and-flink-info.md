@@ -238,7 +238,7 @@ Job Manager: It is the master component responsible for coordinating the executi
     - They both involve redistributing data across partitions but do so in different ways and for different purposes. When operations like keyBy(), shuffle(), or rebalance() are encountered, Flink performs network shuffling to redistribute data between tasks.
     - Useful: https://stackoverflow.com/questions/43956510/difference-between-shuffle-and-rebalance-in-apache-flink, https://stackoverflow.com/questions/46464417/the-strategy-of-apache-flink-shuffle-is-it-like-shuffle-in-hadoop?rq=3
 - Flink Deployment in EKS: In summary; 
-  <img src="{{ site.baseurl }}/public/images/flink-eks-deployment.png.png" alt="flink-eks-deployment.png" class="blog-image">
+  <img src="{{ site.baseurl }}/public/images/flink-eks-deployment.png" alt="flink-eks-deployment.png" class="blog-image">
   (Source: https://awslabs.github.io/data-on-eks/docs/blueprints/streaming-platforms/flink)
 - At Simpl: Historically, we had on-demand EC2 machines, running flink pipelines (JobManager, TaskManagers, etc.). It was a shared cluster. As number of pipelines started to increase it was observed that there were issues, like if one pipeline consumes more resources, other pipelines were effected. 
   - More details around issues faced in past around this, written here: https://cgoyal.substack.com/p/building-real-time-efficiency
@@ -343,7 +343,353 @@ Job Manager: It is the master component responsible for coordinating the executi
     - Manual, user-triggered snapshots for planned operations
     - Managed by users (require manual creation/deletion)
     - Complete state snapshots that support application evolution and upgrades
-  - 
+- Flink Operations:
+  - Transformations:
+    - map: One-to-one transformation that applies a function to each element. 
+    ```
+    dataStream.map(event -> event.toUpperCase());
+    ```
+    - flatMap: One-to-many transformation that can produce zero, one, or multiple elements for each input. 
+    ```
+    dataStream.flatMap((event, out) -> {     
+    for (String word : event.split(" ")) {         
+    out.collect(word);     
+    } 
+    });
+    ```
+    - filter: Keeps elements that satisfy a condition 
+    ```
+    dataStream.filter(event -> event.contains("error"));
+    ```
+  - Keying & Partitioning
+    - keyBy: Groups the stream by a key (creates a KeyedStream) 
+    ```
+    dataStream.keyBy(event -> event.getUserId());
+    ```
+    - shuffle: Redistributes elements randomly 
+    ```
+    dataStream.shuffle();
+    ```
+    - rebalance: Evenly distributes elements across tasks 
+    ```
+    dataStream.rebalance();
+    ```
+    - rescale: Redistributes elements in a round-robin fashion among downstream tasks 
+    ```
+    dataStream.rescale();
+    ```
+    - broadcast: Replicates each element to all parallel tasks 
+    ```
+    dataStream.broadcast()
+    ```
+  - Aggregations & Windows
+    - reduce: Combines elements of a KeyedStream using a reduce function 
+    ```
+    keyedStream.reduce((a, b) -> new Sum(a.value + b.value));
+    ```
+    - aggregate: Applies an aggregation function (like sum, min, max) 
+    ```
+    keyedStream.sum("amount"); 
+    keyedStream.min("latency"); 
+    keyedStream.max("value");
+    ```
+    - window: Groups elements of a stream into finite sets based on time or count 
+    ```
+    keyedStream.window(TumblingEventTimeWindows.of(Time.seconds(5))); 
+    keyedStream.window(SlidingProcessingTimeWindows.of(Time.seconds(10), Time.seconds(5))); 
+    keyedStream.countWindow(100, 10); // sliding count window
+    ```
+    - windowAll: Creates a window on a non-keyed stream 
+    ```
+    dataStream.windowAll(TumblingProcessingTimeWindows.of(Time.minutes(1)));
+    ```
+  - Joining & Combining
+    - join: Joins two data streams based on a key 
+    ```
+    stream1.join(stream2)
+    .where(e1 -> e1.getKey())        
+    .equalTo(e2 -> e2.getKey())        
+    .window(TumblingEventTimeWindows.of(Time.seconds(5)))        
+    .apply((e1, e2) -> new Tuple2<>(e1, e2));
+    ```
+    - coGroup: Groups and joins two streams in a more flexible way than join 
+    ```
+    stream1.coGroup(stream2)        
+    .where(e1 -> e1.getKey())        
+    .equalTo(e2 -> e2.getKey())        
+    .window(TumblingEventTimeWindows.of(Time.seconds(5)))        
+    .apply(new CoGroupFunction<...>() {...});
+    ```
+    - union: Combines multiple streams of the same type
+    ```
+    stream1.union(stream2, stream3);
+    ```
+    - connect: Combines two streams of potentially different types 
+    ```
+    stream1.connect(stream2)        
+    .map(new CoMapFunction<Type1, Type2, ResultType>() {...});
+    ```
+  - Advanced Processing
+    - process: Offers the most flexibility for stream processing 
+    ```
+    keyedStream.process(new KeyedProcessFunction<Key, Input, Output>() {
+    @Override     
+    public void processElement(Input value, Context ctx, Collector<Output> out) 
+    {         
+    // Access to keyed state, timers, side outputs, etc.     
+    } 
+    });
+    ```
+    - iterate: Creates a feedback loop in the dataflow 
+    ```
+    IterativeStream<Integer> iteration = input.iterate(); 
+    DataStream<Integer> iterationBody = iteration.map(/* do something */); 
+    iteration.closeWith(iterationBody.filter(/* termination logic */));
+    ```
+    - side output: Produces output to multiple side channels 
+    ```
+    OutputTag<String> rejectedTag = new OutputTag<String>("rejected"){}; 
+    SingleOutputStreamOperator<String> mainStream = dataStream.process(
+    new ProcessFunction<String, String>() {
+    @Override         
+    public void processElement(String value, Context ctx, Collector<String> out) {
+    if (valid(value)) {                 
+    out.collect(value);             
+    } else {                 
+    ctx.output(rejectedTag, value);             
+    }         
+    } 
+    });
+    DataStream<String> rejectedStream = mainStream.getSideOutput(rejectedTag);
+    ```
+    - async I/O: Performs asynchronous operations on stream elements 
+    ```
+    AsyncDataStream.unorderedWait(
+    stream,     
+    new AsyncDatabaseRequest(),     
+    1000,     
+    TimeUnit.MILLISECONDS,     
+    100);
+    ```
+- Watermarks:
+  - Watermarks are special markers that flow through your data stream, essentially telling the system: "All events with timestamps earlier than this watermark have likely arrived". Note that it in no way indicates if data is processed downstream or not, just senses if data arrived or not. (example in end)
+  - Stream processing often needs to work with time windows (like "count events in the last 5 minutes"). But in distributed systems:
+    - Events arrive out of order
+    - Network delays happen
+    - Some data sources produce events with varying latency
+  - Without watermarks, your system would never know when it's safe to finalize calculations for a time window. Watermarks work based on event time, not the system's internal time. If you use no watermark strategy at all: By default, Flink doesn't automatically generate watermarks. Your application would be operating in processing time rather than event time.
+  - Consider this code now (one of the watermark strategies): `WatermarkStrategy.<ApiEvent>forBoundedOutOfOrderness(Duration.ofSeconds(10)) ## This creates a watermark strategy that allows events to be up to 10 seconds late.`
+    - It doesn't mean Flink is injecting watermarks into the stream every 10 seconds. 
+    - What it actually means:
+      - Flink continuously monitors the timestamps of incoming events
+      - Whenever a new maximum timestamp is observed, Flink generates a new watermark
+      - This watermark is set to: (maximum observed timestamp - 10 seconds)
+      - The watermark advances whenever a new event with a higher timestamp arrives
+    - So the frequency of watermark generation depends on how often events with increasing timestamps arrive, not on a fixed 10-second interval.
+    - In a Flink stream, watermarks advance through the data flow alongside regular events. The diagram below illustrates how watermarks look in a stream:
+      <img src="{{ site.baseurl }}/public/images/flink-stream-watermarking.png" alt="flink-stream-watermarking.png" class="blog-image">
+    - Key Elements in the Diagram:
+      - Regular Events (Green): Normal data events with their timestamps (E1, E2, etc.)
+      - Watermarks (Orange Lines): Special markers that flow through the stream, indicating "we don't expect any more events with timestamps earlier than this value"
+      - Late Events:
+        - Moderately Late (Yellow): Events that arrive after some later events but before the watermark passes their timestamp
+        - Very Late (Red): Events that arrive after the watermark has already passed their timestamp
+    - How Watermarks Advance (based on code example we took earlier):
+      - After E2 (12:30:10), Flink emits WM1 (12:30:00)
+        - WM1 is 10 seconds behind the maximum observed timestamp from all events present (12:30:10)
+        - This tells downstream operators: "Don't expect any more events before 12:30:00". It is an informer, but there is always a possibility events coming late or so. It later depends how we handle late incoming events.
+      - After E4 (12:30:20), Flink emits WM2 (12:30:10)
+        - Watermark advances to 10 seconds behind the new maximum timestamp
+        - Windows ending before 12:30:10 can now be processed and finalized
+      - Event L1 (12:30:08) arrives late, but after WM2
+        - This event is late (earlier than the max timestamp) but still after the current watermark
+        - It may be processed normally depending on how we define our configuration i.e if late events should be sidelined in a sidestream or drop it, etc. 
+        - Windows that ended before 12:30:10 might have already been computed, so L1 might miss being included in its relevant windows The event could trigger late firings for windows that allow it For joins, it might still find matching partners if the relevant join state hasn't been cleared
+      - After E6 (12:30:30), Flink emits WM3 (12:30:20)
+      - Event L2 (12:30:05) arrives very late, after WM3
+        - This event's timestamp is earlier than the current watermark (12:30:20)
+        - It might be dropped or processed as a late event depending on your configuration
+      - After E7 (12:30:35), Flink emits WM4 (12:30:25)
+      - The watermarks essentially flow through your stream as special markers between regular data events. Each operator in your pipeline uses these watermarks to make decisions about when to trigger window computations, when to consider events as late, and when to emit results for operations like joins. For join operations, Flink waits until both input streams have received watermarks that cover the relevant time range before producing join results. This ensures that all potential matching events have been considered.
+      ```
+      Mental model 1: 
+      Think of watermarks as the "last call" announcement in a restaurant.
+      Imagine you're a chef in a busy restaurant with an open kitchen. Orders (events) come in with timestamps indicating when customers placed them. Your goal is to prepare meals efficiently while ensuring customers get their food in a reasonable order.
+      Here's how watermarks work in this scenario:
+        Orders (Events): Each order ticket has a timestamp showing when the customer placed it.
+        Kitchen Processing (Stream Processing): Orders don't always arrive in your kitchen in the exact sequence they were placed - some might take longer to be written up or delivered to the kitchen.
+        The Watermark Announcement: Every few minutes, the maître d' announces a "last call" time: "All orders placed before 7:30 PM should now be in the kitchen!"
+        Moving Forward: This "last call" time (watermark) gradually advances throughout the evening, always staying slightly behind the most recent order timestamp you've seen.
+        Late Order Handling: If an order ticket from 7:25 PM arrives after the 7:30 PM last call announcement, it's considered "late" - you'll still prepare it, but it might not be included in the current batch of meals you're completing.
+        Table Completion: For table service (like window operations), you can confidently complete all dishes for a table once the last call time has passed the timestamp of the last order for that table.
 
+      Mental model 2: 
+      Imagine you're standing on a beach, watching waves (your events) come in. Each wave carries a timestamp written on it, telling you when it formed out at sea.
+      The watermark is like a colored line you draw in the sand. When you draw this line, you're declaring: "I'm reasonably confident all waves that formed before this time have already reached the shore."
+      As you observe waves (events):
+        You notice the timestamps on the waves that arrive
+        You mentally track the most recent timestamp you've seen (max observed timestamp)
+        You draw your line (watermark) 10 seconds behind that maximum timestamp
+        You gradually move this line forward as newer timestamps arrive
+        Sometimes, a smaller wave arrives late - it formed earlier but took longer to reach you. If this wave's formation time is before your current line in the sand, you consider it a "late arrival" that missed your expectations.
+        For operations like joins, imagine you're trying to match pairs of colored shells from two different sections of beach. You need to be confident you've seen all shells up to a certain time from both sections before you can finalize your matching.
+        
+      Mental model 3:
+      Imagine watermarks as a special clock that runs alongside your data stream:
+        The Special Clock: This clock doesn't tick based on real-time but instead advances based on the timestamps in your data.
+        Snapshot Moments: Whenever this clock ticks forward, it takes a "snapshot" of the system state, declaring "everything before this timestamp should have been processed by now."
+        Lagging Behavior: This clock deliberately runs slower than the actual event timestamps - it stays 10 seconds (or whatever your configuration is) behind the highest timestamp seen.
+        Processing Decisions: When this clock reaches a certain time T, the system uses that snapshot to make decisions like:
+        "We can now finalize calculations for time windows ending before T"
+        "Any event with timestamp before T that arrives now is considered late"
+        "Join operations can emit results for events with timestamps before T"
+        Advancing Mechanism: The clock advances not based on wall-clock time, but when new events with higher timestamps arrive in the system.
+        This model captures how watermarks serve as an internal timing mechanism that allows distributed stream processors to make coordinated decisions about when certain operations can be considered complete, based on the timestamps present in the data itself rather than external time.
+      ```
+    - If watermarks are set to the latest timestamp without any delay (i.e., no buffer for late events), several significant problems can arise in real-time streaming applications: Problems with Improper Watermark Configuration:
+    - Excessive Late Event Dropping
+      - Without a delay buffer, any event arriving slightly out of order would be considered late
+      - This leads to data loss and incomplete results in aggregations and joins
+      - In distributed systems, perfect ordering is practically impossible
+    - Incorrect Join Results
+      - Join operations may produce incomplete or wrong results
+      - If event A from stream 1 should join with event B from stream 2, but B arrives after the watermark has passed, the join will be missed
+    - Premature Window Closing
+      - Time-based windows will close too early
+      - Events that are only slightly delayed would miss their intended windows
+      - This creates inaccurate aggregations (sums, counts, averages would be wrong)
+    - Inconsistent State
+      - Different operators in your pipeline might process different subsets of data
+      - This leads to inconsistent state throughout the application
+  - By default, a new watermark is generated every 200ms in Apache Flink.
+  - How Watermarks Flow Through the System: 
+    - Generation: Watermarks are created at sources or after a timestamp assigner.
+    - Propagation: Watermarks flow through the operator chain just like regular records.
+    - Operator Behavior:
+      - When an operator receives a watermark, it first processes any pending events with timestamps less than the watermark
+      - Then it forwards the watermark downstream
+      - For stateful operations, this often triggers state cleanup and window completion
+    - Multiple Input Streams: For operators with multiple inputs (like joins), Flink uses the minimum watermark from all inputs.
 
-----------------
+- Idleness Handling: 
+  - The idleness detection in stream prevents watermarks from stalling when a stream goes quiet:
+    - If no events arrive for 2 minutes, the stream is marked as idle
+    - Flink continues advancing watermarks even without new events
+    - This allows downstream processing to continue rather than waiting indefinitely
+    - This is crucial for multi-stream operations like your interval join
+    - Without this, if one stream stops receiving events, its watermark would freeze, potentially blocking the progress of joins. This ensures that your entire pipeline doesn't stall if one stream temporarily stops producing events.
+    - Eg: 
+      ```
+      .withIdleness(Duration.ofMinutes(2))
+      In above, by using this setting, 
+      if no events arrive for 2 minutes, Flink will assume the stream is idle and 
+      advance its watermark to match the system time.
+      ```
+- Timestamp Assignment: 
+  - Below eg.; It extracts the actual event time from each record, converting the timestamp string to milliseconds since epoch.
+  ```
+  .withTimestampAssigner((event, l) -> {
+  return  
+  OffsetDateTime
+  .parse(event.getEvent_timestamp())
+  .toInstant()
+  .toEpochMilli(); 
+  })
+  ```
+- Example of all: Consider a below piece of code, where we have 2 streams joining:
+```
+// Stream of events
+SingleOutputStreamOperator<BaseEventA> eventAMappedStream = StreamA
+        .process(new eventAMapper())
+        .assignTimestampsAndWatermarks(
+                WatermarkStrategy.<BaseEventA>forBoundedOutOfOrderness(Duration.ofSeconds(10))
+                        .withIdleness(Duration.ofMinutes(2))
+                        .withTimestampAssigner((SerializableTimestampAssigner<BaseEventA>) (event, l) -> {
+                            Long timeStamp = null;
+                            timeStamp = OffsetDateTime.parse(event.getEventTimestamp()).toInstant().toEpochMilli(); // Watermarking based on event timestamp
+                            return timeStamp;
+                        })
+        )
+        .uid("EventA-Stream")
+        .name("EventA-Stream");
+        
+SingleOutputStreamOperator<BaseEventB> eventBMappedStream = streamB
+        .process(new eventBMapper())
+        .assignTimestampsAndWatermarks(
+                WatermarkStrategy.<BaseEventB>forBoundedOutOfOrderness(Duration.ofSeconds(10))
+                        .withIdleness(Duration.ofMinutes(2))
+                        .withTimestampAssigner((SerializableTimestampAssigner<BaseEventB>) (event, l) -> {
+                            Long timeStamp = null;
+                            timeStamp = OffsetDateTime.parse(event.getEventTimestamp()).toInstant().toEpochMilli();
+                            return timeStamp;
+                        })
+        )
+        .uid("EventB-Stream")
+        .name("EventB-Stream");
+        
+// Join the stream A and stream B events based on say, token attribute present in both events
+SingleOutputStreamOperator<ProcessedEvent> joinedStream = eventAMappedStream.keyBy(BaseEventA::getTokenA)
+        .intervalJoin(
+                eventBMappedStream.keyBy(BaseEventB::getTokenB)
+        )
+        .between(Time.seconds(-60), Time.seconds(60))
+        .process(new ProcessedEventMapper())
+        .uid("Processed-Join-Stream-Event")
+        .name("Processed-Join-Stream-Event");
+```
+  - Understanding Watermarks and Windows in Stream Processing
+    - Let's consider the two streams in your code:
+      - eventAMappedStream - Events from set of services A - Stream 1
+      - eventBMappedStream - Events from set of services B - Stream 2
+    - Step 1: Event Arrival and Timestamp Assignment: Imagine we receive these events in our system (not necessarily in timestamp order):
+      - Stream 1:
+        - Event A: arrives at 12:30:00 system time, timestamp 12:29:50 (don't confuse with services A,B, etc., just imagine it as another event)
+        - Event B: arrives at 12:30:05 system time, timestamp 12:29:55
+        - Event C: arrives at 12:30:10 system time, timestamp 12:29:45 (notice it's out of order)
+        - Event D: arrives at 12:30:15 system time, timestamp 12:30:05
+      - Stream 2:
+        - Event W: arrives at 12:30:02 system time, timestamp 12:29:52
+        - Event X: arrives at 12:30:08 system time, timestamp 12:29:58
+        - Event Y: arrives at 12:30:12 system time, timestamp 12:29:48 (out of order)
+        - Event Z: arrives at 12:30:18 system time, timestamp 12:30:08
+    - Step 2: Watermark Generation: For both streams, you're using WatermarkStrategy.<Event>forBoundedOutOfOrderness(Duration.ofSeconds(10)). Here's how watermarks progress in each stream:
+      - Stream 1 Watermarks:
+        - After Event A (12:29:50): Watermark = 12:29:40
+        - After Event B (12:29:55): Watermark = 12:29:45
+        - After Event C (12:29:45): Watermark doesn't change (still 12:29:45) since C isn't a new maximum
+        - After Event D (12:30:05): Watermark = 12:29:55
+      - Stream 2 Watermarks:
+        - After Event W (12:29:52): Watermark = 12:29:42
+        - After Event X (12:29:58): Watermark = 12:29:48
+        - After Event Y (12:29:48): Watermark doesn't change (still 12:29:48)
+        - After Event Z (12:30:08): Watermark = 12:29:58
+    - Step 3: What Happens in the Join Operation: In your code, you're doing an interval join with: .between(Time.seconds(-60), Time.seconds(60)); This means for each event in Stream 1, Flink will look for matching events in Stream 2 within a 2-minute window centered on the timestamp of the Stream 1 event (60 seconds before and 60 seconds after). For example:
+      - When Event A (12:29:50) arrives, it looks for Stream 2 events with timestamps between 12:28:50 and 12:30:50
+      - This would match Events W, X, Y, and Z if they have the same key
+    - Step 4: How Watermarks Control the Join: Now for the critical part - watermarks determine when Flink can safely process and emit joined results:
+      - When the watermark reaches a certain point in time T, Flink knows it shouldn't expect any more events with timestamps earlier than T
+      - For joins, Flink needs to wait for the watermark to advance far enough in BOTH streams before it can be sure it has all the potential matches for a join
+      - The actual point at which Flink emits results depends on:
+        - The current watermark in both streams (Flink takes the minimum of the two)
+        - The time boundaries of your join window
+      - For example, when both streams have watermarks past 12:29:55, Flink can safely process and emit joined results for events with timestamps around 12:28:55 (considering your 60-second lower bound).
+    - Example of Specific Join Processing
+      - Let's trace through a specific join scenario:
+      - Event A (From stream 1, timestamp 12:29:50) arrives with key "token123"
+      - Event W (From stream 2, timestamp 12:29:52) arrives with key "token123"
+      - A match is found, but Flink doesn't immediately emit the result
+      - Flink waits until watermarks in both streams advance past 12:29:50 (plus the join window upper bound)
+      - Once watermarks in both streams are past this time, Flink can emit the joined result
+    - The Difference Between Watermarks and Windows:
+      - Watermarks are a mechanism to track the progress of event time in the system. They answer the question: "Up to what point in event time have we likely seen all events?"
+      - Windows define the time ranges over which operations (like joins or aggregations) are performed. They answer the question: "What time range of events should be considered together for this operation?"
+      - In your code: The forBoundedOutOfOrderness(Duration.ofSeconds(10)) controls watermark generation; The .between(Time.seconds(-60), Time.seconds(60)) defines the join window
+      - The Role of withIdleness(Duration.ofMinutes(2)): This is an important addition that tells Flink to continue advancing watermarks even if a stream doesn't receive events for a while. Without this, if one stream stops receiving events, its watermark would freeze, potentially blocking the progress of joins. By using this setting, if no events arrive for 2 minutes, Flink will assume the stream is idle and advance its watermark to match the system time. This ensures that your entire pipeline doesn't stall if one stream temporarily stops producing events.
+      - It is highly recommended that you specify operator IDs via the uid(String) method (as seen in code). These IDs are used to scope the state of each operator. If you do not specify the IDs manually they will be generated automatically. You can automatically restore from the savepoint as long as these IDs do not change. The generated IDs depend on the structure of your program and are sensitive to program changes. Therefore, it is highly recommended assigning these IDs manually.
+- Flink Filesink API to write data to a filesystem sink:
+  - This connector provides a unified Sink for BATCH and STREAMING that writes partitioned files to filesystems supported by the Flink FileSystem abstraction; Eg: S3, Azure Blob, GCP, etc. 
+  - Checkpointing needs to be enabled when using the FileSink in STREAMING mode. Part files can only be finalized on successful checkpoints. If checkpointing is disabled, part files will forever stay in the in-progress or the pending state, and cannot be safely read by downstream systems. Doc: https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/connectors/datastream/file_sink/
+  - When we say “exactly-once semantics”, what we mean is that each incoming event affects the final results exactly once. Exactly once applies to the whole ecosystem of connected components. Even in case of a machine or software failure, there’s no duplicate data and no data that goes unprocessed.
+    - Flink’s Exactly Once: https://flink.apache.org/2018/02/28/an-overview-of-end-to-end-exactly-once-processing-in-apache-flink-with-apache-kafka-too/
+
+--------------------------------------------

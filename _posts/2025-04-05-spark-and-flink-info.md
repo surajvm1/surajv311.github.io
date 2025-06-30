@@ -113,8 +113,8 @@ Hardware Level Configuration:
   - Networking: Adequate network bandwidth is essential for efficient communication between drivers and executors, especially when shuffling data between stages.
   - Storage Systems: Integration with distributed storage systems like HDFS or cloud storage solutions (e.g., Amazon S3) allows Spark to read/write large datasets efficiently.
 - More details:
-  - Concise info: [Ref 1](https://github.com/Surajv311/mDumpSWE/tree/main/Spark)
-  - Detailed info: [Ref 2](https://github.com/Surajv311/mDumpSWE/blob/main/Books_ResearchPapers_read/README_book1.md)
+  - Concise info: [ref1](https://github.com/Surajv311/mDumpSWE/tree/main/Spark)
+  - Detailed info: [ref2](https://github.com/Surajv311/mDumpSWE/blob/main/Books_ResearchPapers_read/README_book1.md)
 
 #### Flink
 

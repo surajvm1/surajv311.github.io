@@ -287,7 +287,7 @@ Time    Action                           Duration    Notes
 Note:
 - Polling only happens when your application code explicitly calls `poll()` & not automatically every X seconds.
 - poll_timeout=1.0 is not the polling interval of 1s; it's the maximum time to wait for messages if none are immediately available.
-- Heartbeats & polling are different concepts. We will learn more on it, but heartbeats run in the background by the consumer client to maintain group membership, while polling is your main thread's way of fetching messages. If poll() is not called within max.poll.interval.ms, the consumer is considered stalled or dead, even if heartbeats are working. [Ref](https://stackoverflow.com/a/40200328) 
+- Heartbeats & polling are different concepts. We will learn more on it, but heartbeats run in the background by the consumer client to maintain group membership, while polling is your main thread's way of fetching messages. If poll() is not called within max.poll.interval.ms, the consumer is considered stalled or dead, even if heartbeats are working. [ref](https://stackoverflow.com/a/40200328) 
 
 Relation & differences between Heartbeats/Poll/Session intervals: 
 

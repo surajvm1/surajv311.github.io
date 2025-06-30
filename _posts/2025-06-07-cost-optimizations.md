@@ -15,7 +15,7 @@ It's not exhaustive list, but have tried adding as many as I recall.
 - Optimizing data queries like reducing scanning, adding index, changing workflow frequencies, etc., - deprecating unnecessary tables.
 - Optimizing workflows - places where we publish/send full data -> Change it to delta. 
 - Save storage space in S3, write files in zip format?, object versioning remove??, unnecessary files delete, add a retention policy in bucket, explored AWS Glacier cold storage for older data, etc. 
-- Underused ALBs shutdown or merge, i.e having commone ALB for multiple services, staging/production infra ecosystem cleanup. 
+- Underused ALBs shutdown or merge, i.e having common ALB for multiple services, staging/production infra ecosystem cleanup. 
 - Removing unnecessary logs publishing to Opensearch and other places. 
 - Cleaning up dynamo tables, adding TTL, etc. 
 - Unnecessary Cloudwatch alarms removed. AWS Cloudtrail optimize. Metrics being captured reduced. 

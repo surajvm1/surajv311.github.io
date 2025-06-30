@@ -20,12 +20,7 @@ title: Videos
     </li>
     <li>
         <a href="" target="_blank">
-        In-progress-1
-        </a>
-    </li>
-    <li>
-        <a href="" target="_blank">
-        In-progress-2...
+        In-progress... 
         </a>
     </li>
 </ul>

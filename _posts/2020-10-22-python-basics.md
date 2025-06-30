@@ -15,8 +15,8 @@ Let's glide through all the basic concepts in Python :
 
 """ multi-line 
 comment"""
-
 ```
+
 * We can declare variables directly in Python without putting any data type unlike other languages like C/C++.
 
 ```
@@ -29,6 +29,7 @@ a , b = "Hello" , "World"  # to assign values in single line
 print(a)
 print(b)
 ```
+
 * To get the data type of any object: 
 
 ```

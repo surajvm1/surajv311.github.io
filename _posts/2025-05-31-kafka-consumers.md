@@ -112,6 +112,7 @@ There are three fundamental concepts related to the kafka consumers:
 * **Offset Management**: The mechanism for tracking processing progress
 
 But before I dive into them, a quick detour on Kafka architecture: 
+
 ```
 1) 
 ┌───────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -423,6 +424,7 @@ Your Application Buffer (accumulating):
 Apart from poll interval which we discussed earlier, there is also: `poll timeout`.
 
 **Poll Timeout (`timeout` parameter in `poll(timeout)`)**:
+
 ```python
 msg = consumer.poll(timeout=1000)  # Wait UP TO 1 second for messages
 ```
@@ -432,6 +434,7 @@ msg = consumer.poll(timeout=1000)  # Wait UP TO 1 second for messages
 * Impact: Only affects CPU usage and responsiveness when queue is empty
 
 **Poll Interval (`max.poll.interval.ms` configuration)**:
+
 ```python
 config = {
     'max.poll.interval.ms': 300000  # Must call poll() within 5 minutes
@@ -445,6 +448,7 @@ config = {
 For example: 
 
 **Normal Operation (Fast Processing)**:
+
 ```
 0:00:00 poll() → get message → process (100ms) → poll() → get message...
         ↑────── 10ms between polls ──────↑
@@ -465,6 +469,7 @@ Time Window: 0-200ms
 ```
 
 **Slow Processing Operation**:
+
 ```
 0:00:00 poll() → get message → process (6 minutes) → poll()
         ↑────────── 6 minutes between polls ──────────↑
@@ -487,6 +492,7 @@ Time Window: 0-7 minutes
 ```
 
 **Empty Queue Scenario**:
+
 ```
 0:00:00 poll(timeout=1000) → wait 1sec → return None → poll(timeout=1000)...
         ↑────────── 1 second between polls ──────────↑
@@ -510,6 +516,7 @@ Time Window: 0-3 seconds
 Next, let's talk about the offset management and commits, which is crucial for understanding how Kafka tracks message processing progress and ensures reliability in message consumption.
 
 **Polling** (fetching messages):
+
 ```python
 records = consumer.poll(timeout=1000)  # Gets messages to process
 ```
@@ -518,6 +525,7 @@ records = consumer.poll(timeout=1000)  # Gets messages to process
 * **Does NOT**: Tell Kafka you've processed the messages
 
 **Committing** (confirming processing):
+
 ```python
 consumer.commit()  # Tells Kafka: "I've processed messages up to offset X"
 ```
@@ -528,6 +536,7 @@ consumer.commit()  # Tells Kafka: "I've processed messages up to offset X"
 Commit behaviour: 
 
 **Auto-Commit Behavior**:
+
 ```python
 config = {
     'enable.auto.commit': True,
@@ -543,6 +552,7 @@ config = {
 ```
 
 **Manual Commit Behavior** (Your Code):
+
 ```python
 config = {
     'enable.auto.commit': False  # You control when to commit
@@ -557,6 +567,7 @@ for event in kafka.stream():
 Commit Strategies:
 
 **At-Most-Once (commit before processing)**:
+
 ```python
 for record in consumer:
     consumer.commit()     # Commit first
@@ -565,6 +576,7 @@ for record in consumer:
 ```
 
 **At-Least-Once (commit after processing)** - Current approach:
+
 ```python
 for record in consumer:
     process(record)       # Process first
@@ -573,6 +585,7 @@ for record in consumer:
 ```
 
 **Exactly-Once (using transactions)**:
+
 ```python
 # Requires Kafka transactions and idempotent processing
 with consumer.transaction():
@@ -583,6 +596,7 @@ with consumer.transaction():
 ```
 
 Consumer Lag: Lag occurs when your processing speed is slower than the message production rate. In our case, the step when S3 upload happens, it would've caused a spike in lag.
+
 ```
 Message Production Rate: 1000 msgs/second
 Your Processing Rate:    800 msgs/second
@@ -593,6 +607,7 @@ Net Lag Increase:       200 msgs/second
 I think we have touched upon most of the concepts related to the Kafka consumer, and now we can easily connect the dots which led to the MAX_POLL_EXCEEDED error and possible fixes.
 
 Error: 
+
 ```
 KafkaError{code=_MAX_POLL_EXCEEDED,val=-147,str="Application maximum poll interval (300000ms) exceeded by 249ms"}
 ```
@@ -645,6 +660,7 @@ Timeline of MAX_POLL_EXCEEDED Error:
 Possible solutions would've been: 
 
 - Increase the Timeout. We could relax a lot of other configs as well to handle other scenarios. List of configurations for [reference](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md).
+
 ```python
 config = {
     'max.poll.interval.ms': 900000  # 15 minutes
@@ -652,6 +668,7 @@ config = {
 ```
 
 - Asynchronous Processing of S3 upload
+
 ```python
 import concurrent.futures
 class KafkaToS3Consumer:

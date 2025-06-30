@@ -85,6 +85,7 @@ cout << "functionOne is called(in header file)\n";
 }
 
 ```
+
 ``` 
 //main.cpp
 // other header files
@@ -133,6 +134,7 @@ In a nutshell, it means having different forms. There are two types of polymorph
 -> Runtime Polymorphism:<br>
 
 It happens when we override a function in the program.
+
 ```
 // header files 
 
@@ -187,7 +189,6 @@ objBB->fun_();
 /* Note:
 HERE objBB pointer(of Virtual_two class) carries address of objC(of Virtual_three class). So in objBB->fun_(); The fun_() of Virtual_two class would be working, as objBB pointer belongs to that class.
 But when you add the keyword 'virtual' : The fun_() of Virtual_three class would work. */
-
 ```
 
  <br>
@@ -196,6 +197,7 @@ But when you add the keyword 'virtual' : The fun_() of Virtual_three class would
 It happens when we overload a function or an operator in the program.
 <br>
 Consider a case of Operator Overloading: 
+
 ```
 // header files
 class Op_ovrload 
@@ -247,6 +249,7 @@ objD = objA + objB;
 ```
 
 Consider the other case of function overloading:
+
 ```
 // header files 
 

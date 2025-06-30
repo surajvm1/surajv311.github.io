@@ -41,6 +41,7 @@ One of the secret credentials had expired.
 Hence had to use the vault_pass_no_prompt key to open the ansible vault, decrypt the yaml file inside which the secret keys were kept encrypted (Note that though we say ansible vault, all the files present in the vault are present in machine only, its just that vault is just a layering on top of accessing it), change the key in yaml file, encrypt back the yaml file. 
 These were the sequence of steps. Sample path where secret keys are stored encrypted in machine was: `/deploy/ansible/inventories/keys.yml`
 Ansible commands for encrypting/decrypting once inside the bastion machine:
+
 ```
 source ~/.venv/ansible_env/bin/activate ## activating the env with which deployment happens to ensure changes are persisted with our manual intervention
 cd /deploy/ansible/inventories ## go in the dir

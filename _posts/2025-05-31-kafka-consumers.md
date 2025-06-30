@@ -11,7 +11,8 @@ The consumers read events from Kafka, add some metadata, and dump it in S3. It's
 
 There are conditions attached before the data is flushed to S3 like: Either the memory buffer size is breached (eg: 10mb), or the time to hold data in buffer is expired (eg: 10mins).
 
-Now, the error was: `KafkaError{code=_MAX_POLL_EXCEEDED,val=-147,str="Application maximum poll interval (300000ms) exceeded by 249ms"}`.
+Now, the error was: 
+`KafkaError{code=_MAX_POLL_EXCEEDED,val=-147,str="Application maximum poll interval (300000ms) exceeded by 249ms"}`.
 Working on this issue gave me a reason to deep dive into the Kafka consumer code and understand how it works.
 
 ```
@@ -113,51 +114,51 @@ There are three fundamental concepts related to the kafka consumers:
 But before I dive into them, a quick detour on Kafka architecture: 
 ```
 1) 
-┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                        Complete Kafka Architecture                                       │
-├───────────────────────────────────────────────────────────────────────────────────────────────────────── ┤
-│                                                                                                          │
-│  Producers                                    Kafka Cluster                               Consumers      │
-│                                                                                                          │
-│ ┌─────────────┐                          ┌─────────────────────────┐                 ┌─────────────┐     │
-│ │   Web App   │──┐                       │                          │              ┌─│  Analytics  │     │
-│ │ (UserEvents)│  │    Produce            │  ┌─────────────────────┐ │   Consume    │ │   Service   │     │
-│ └─────────────┘  │   Requests            │  │      Broker 1       │ │  Requests    │ └─────────────┘     │
-│                  │                       │  │ ┌─────────────────┐ │ │              │                     │
-│ ┌─────────────┐  │                       │  │ │ user-events     │ │ │              │ ┌─────────────┐     │
-│ │Mobile App   │──┼──────────────────────►│  │ │ Partition 0 (L) │ │ │◄─────────────┼─│   Billing   │     │
-│ │(OrderEvents)│  │                       │  │ └─────────────────┘ │ │              │ │   Service   │     │
-│ └─────────────┘  │                       │  │ ┌─────────────────┐ │ │              │ └─────────────┘     │
-│                  │                       │  │ │ order-events    │ │ │              │                     │
-│ ┌─────────────┐  │                       │  │ │ Partition 0 (L) │ │ │              │ ┌─────────────┐     │
-│ │   API       │──┼──────────────────────►│  │ └─────────────────┘ │ │◄─────────────┼─│Notification │     │
-│ │ Gateway     │  │                       │  └─────────────────────┘ │              │ │   Service   │     │
-│ └─────────────┘  │                       │                          │              │ └─────────────┘     │
-│                  │                       │  ┌─────────────────────┐ │              │                     │
-│ ┌─────────────┐  │                       │  │      Broker 2       │ │              │ ┌─────────────┐     │
-│ │   IoT       │──┼──────────────────────►│  │ ┌─────────────────┐ │ │◄─────────────┼─│   Audit     │     │
-│ │  Sensors    │  │                       │  │ │ user-events     │ │ │              │ │   Service   │     │
-│ └─────────────┘  │                       │  │ │ Partition 1 (L) │ │ │              │ └─────────────┘     │
-│                  │                       │  │ └─────────────────┘ │ │              │                     │
-│ ┌─────────────┐  │                       │  │ ┌─────────────────┐ │ │              │ ┌─────────────┐     │
-│ │  Batch      │──┘                       │  │ │ order-events    │ │ │◄─────────────┼─│   Stream    │     │
-│ │ Processor   │                          │  │ │ Partition 1 (L) │ │ │              │ │ Processor   │     │
-│ └─────────────┘                          │  │ └─────────────────┘ │ │              │ └─────────────┘     │
-│                                          │  └─────────────────────┘ │              │                     │
-│  Configuration:                          │                          │              │ Consumer Groups:    │
-│  • acks=all                              │  ┌─────────────────────┐ │              │ • analytics-group   │
-│  • retries=3                             │  │      Broker 3       │ │              │ • billing-group     │
-│  • batch.size=16384                      │  │ ┌─────────────────┐ │ │              │ • notification-grp  │
-│  • compression=gzip                      │  │ │ user-events     │ │ │              │ • audit-group       │
-│                                          │  │ │ Partition 2 (L) │ │ │              │ • stream-processor  │
-│                                          │  │ └─────────────────┘ │ │              │                     │
-│                                          │  │ ┌─────────────────┐ │ │              │ Configuration:      │
-│                                          │  │ │ order-events    │ │ │              │ • auto.offset.reset │
-│                                          │  │ │ Partition 2 (L) │ │ │              │ • enable.auto.commit│
-│                                          │  │ └─────────────────┘ │ │              │ • max.poll.records  │
-│                                          │  └─────────────────────┘ │              │ • fetch.min.bytes   │
-│                                          └─────────────────────────┘               │                     │
-└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 Complete Kafka Architecture                                   │
+├────────────────────────────────────────────────────────────────────────────────────────────── ┤
+│                                                                                               │
+│  Producers                             Kafka Cluster                           Consumers      │
+│                                                                                               │
+│ ┌─────────────┐               ┌─────────────────────────┐                 ┌─────────────┐     │
+│ │   Web App   │──┐            │                          │              ┌─│  Analytics  │     │
+│ │ (UserEvents)│  │    Produce │  ┌─────────────────────┐ │   Consume    │ │   Service   │     │
+│ └─────────────┘  │   Requests │  │      Broker 1       │ │  Requests    │ └─────────────┘     │
+│                  │            │  │ ┌─────────────────┐ │ │              │                     │
+│ ┌─────────────┐  │            │  │ │ user-events     │ │ │              │ ┌─────────────┐     │
+│ │Mobile App   │──┼──────────► │  │ Partition 0 (L) │ │ │◄──────────┼─── │ |  Billing    │     │
+│ │(OrderEvents)│  │            │  │ └─────────────────┘ │ │              │ │   Service   │     │
+│ └─────────────┘  │            │  │ ┌─────────────────┐ │ │              │ └─────────────┘     │
+│                  │            │  │ │ order-events    │ │ │              │                     │
+│ ┌─────────────┐  │            │  │ │ Partition 0 (L) │ │ │              │ ┌─────────────┐     │
+│ │   API       │──┼──────────► │  | └─────────────────┘ │◄──────────┼────│ |Notification │     │
+│ │ Gateway     │  │            │  └─────────────────────┘ │              │ │   Service   │     │
+│ └─────────────┘  │            │                          │              │ └─────────────┘     │
+│                  │            │  ┌─────────────────────┐ │              │                     │
+│ ┌─────────────┐  │            │  │      Broker 2       │ │              │ ┌─────────────┐     │
+│ │   IoT       │──┼──────────► │  │ ┌─────────────────┐ │◄──────────┼────│ | Audit       │     │
+│ │  Sensors    │  │            │  │ │ user-events     │ │ │              │ │   Service   │     │
+│ └─────────────┘  │            │  │ │ Partition 1 (L) │ │ │              │ └─────────────┘     │
+│                  │            │  │ └─────────────────┘ │ │              │                     │
+│ ┌─────────────┐  │            │  │ ┌─────────────────┐ │ │              │ ┌─────────────┐     │
+│ │  Batch      │──┘            │  │ │ order-events    │ │◄───────────┼───│ |  Stream     │     │
+│ │ Processor   │               │  │ │ Partition 1 (L) │ │ │              │ │ Processor   │     │
+│ └─────────────┘               │  │ └─────────────────┘ │ │              │ └─────────────┘     │
+│                               │  └─────────────────────┘ │              │                     │
+│  Configuration:               │                          │              │ Consumer Groups:    │
+│  • acks=all                   │  ┌─────────────────────┐ │              │ • analytics-group   │
+│  • retries=3                  │  │      Broker 3       │ │              │ • billing-group     │
+│  • batch.size=16384           │  │ ┌─────────────────┐ │ │              │ • notification-grp  │
+│  • compression=gzip           │  │ │ user-events     │ │ │              │ • audit-group       │
+│                               │  │ │ Partition 2 (L) │ │ │              │ • stream-processor  │
+│                               │  │ └─────────────────┘ │ │              │                     │
+│                               │  │ ┌─────────────────┐ │ │              │ Configuration:      │
+│                               │  │ │ order-events    │ │ │              │ • auto.offset.reset │
+│                               │  │ │ Partition 2 (L) │ │ │              │ • enable.auto.commit│
+│                               │  │ └─────────────────┘ │ │              │ • max.poll.records  │
+│                               │  └─────────────────────┘ │              │ • fetch.min.bytes   │
+│                               └─────────────────────────┘               │                     │
+└───────────────────────────────────────────────────────────────────────────────────────────────┘
 
 2) Consumer Group Rebalancing
 
@@ -181,9 +182,8 @@ Consumer B Crashes:
 │ Consumer A        Consumer B        Consumer C                  │
 │ ┌─────────────┐   ┌─────────────┐   ┌─────────────┐             │
 │ │   Active    │   │  CRASHED    │   │   Active    │             │
-│ │             │   │     ❌      │   │             │             │
 │ └─────────────┘   └─────────────┘   └─────────────┘             │
-│        │                                   │                    │
+│        │                ❌                 │                    │
 │        └─────────────┬─────────────────────┘                    │
 │                      │                                          │
 │              Group Coordinator                                  │
@@ -262,7 +262,7 @@ Topic: user-events (3 partitions)
 Each consumer in a group is assigned specific partitions, and the group coordinator (a Kafka broker) manages these assignments.
 
 The `poll()` method is the heart of Kafka consumer operation, but it does much more than just fetch messages. 
-I tried to go through the source code but realized it's a maze, maybe I will spend more time on this later - https://github.com/confluentinc/librdkafka/blob/master/src/rdkafka.c#L3388.
+I tried to go through the source code but realized it's a maze, maybe I will spend more time on this later - [ref](https://github.com/confluentinc/librdkafka/blob/master/src/rdkafka.c#L3388).
 
 Here's what a typical polling sequence looks like:
 
@@ -286,7 +286,7 @@ Time    Action                           Duration    Notes
 Note:
 - Polling only happens when your application code explicitly calls `poll()` & not automatically every X seconds.
 - poll_timeout=1.0 is not the polling interval of 1s; it's the maximum time to wait for messages if none are immediately available.
-- Heartbeats & polling are different concepts. We will learn more on it, but heartbeats run in the background by the consumer client to maintain group membership, while polling is your main thread's way of fetching messages. If poll() is not called within max.poll.interval.ms, the consumer is considered stalled or dead, even if heartbeats are working. Ref: https://stackoverflow.com/a/40200328 
+- Heartbeats & polling are different concepts. We will learn more on it, but heartbeats run in the background by the consumer client to maintain group membership, while polling is your main thread's way of fetching messages. If poll() is not called within max.poll.interval.ms, the consumer is considered stalled or dead, even if heartbeats are working. [Ref](https://stackoverflow.com/a/40200328) 
 
 Relation & differences between Heartbeats/Poll/Session intervals: 
 

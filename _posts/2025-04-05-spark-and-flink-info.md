@@ -597,6 +597,7 @@ Job Manager: It is the master component responsible for coordinating the executi
   })
   ```
 - Example of all: Consider a below piece of code, where we have 2 streams joining:
+
 ```
 // Stream of events
 SingleOutputStreamOperator<BaseEventA> eventAMappedStream = StreamA
@@ -637,6 +638,7 @@ SingleOutputStreamOperator<ProcessedEvent> joinedStream = eventAMappedStream.key
         .uid("Processed-Join-Stream-Event")
         .name("Processed-Join-Stream-Event");
 ```
+
   - Understanding Watermarks and Windows in Stream Processing
     - Let's consider the two streams in your code:
       - eventAMappedStream - Events from set of services A - Stream 1

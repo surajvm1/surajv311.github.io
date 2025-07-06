@@ -689,68 +689,192 @@ SingleOutputStreamOperator<ProcessedEvent> joinedStream = eventAMappedStream.key
 - Flink Filesink API to write data to a filesystem sink:
   - This connector provides a unified Sink for BATCH and STREAMING that writes partitioned files to filesystems supported by the Flink FileSystem abstraction; Eg: S3, Azure Blob, GCP, etc. 
   - Checkpointing needs to be enabled when using the FileSink in STREAMING mode. Part files can only be finalized on successful checkpoints. If checkpointing is disabled, part files will forever stay in the in-progress or the pending state, and cannot be safely read by downstream systems. Doc: [ref](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/connectors/datastream/file_sink/)
-  - When we say “exactly-once semantics”, what we mean is that each incoming event affects the final results exactly once. Exactly once applies to the whole ecosystem of connected components. Even in case of a machine or software failure, there’s no duplicate data and no data that goes unprocessed.
-    - Flink’s Exactly Once: [ref](https://flink.apache.org/2018/02/28/an-overview-of-end-to-end-exactly-once-processing-in-apache-flink-with-apache-kafka-too/)
-  - Other Flink functions: 
-    - SingleOutputStream + RichAsyncFunction + Sideoutput combined example:
-      - In short, function takes input stream does some processing and returns output stream. If any error is popped up, it is handled in a side stream. Sample eg: 
-      - ```
-        Eg:
+  - Flink's FileSink which helps write data to S3 works in:
+    - File Lifecycle Stages: Files go through multiple states:
+        - In-progress: Currently being written to
+        - Pending: Closed for writing but waiting for commit
+        - Finished: Successfully committed to the final location
+    - File Committing: Checkpointing Requirement: The FileSink only commits files when:
+        - A checkpoint completes successfully (in streaming mode)
+        - The job finishes completely (in batch mode)
+    - In Flink, if checkpointing is not explicitly enabled in your job, there is no default checkpointing. This means:
+        - For streaming jobs: Without checkpointing, the FileSink will buffer data in the "in-progress" files. These files will never automatically transition to the "finished" state. The data will remain in the in-progress state indefinitely. The data will only be properly committed to S3 when the job completes gracefully.
+        - For batch jobs: Files are committed when the job completes successfully, No checkpointing is needed for batch processing.
+    - In a production environment without checkpointing:
+        - Data will eventually appear in S3, but only after the job terminates normally. If the job crashes or is forcibly terminated, the in-progress files may be lost. You lose exactly-once guarantees without checkpointing.
+    - For Flink's FileSink specifically:
+        - It uses a transaction-like approach to writing files. Without checkpoints, it maintains the "in-progress" files but doesn't commit them. There's no default timeout or automatic flush to finalize these files.
+     - If you need data to appear in S3 without waiting for job completion or explicit checkpoints, you should either:
+        - Enable checkpointing with a reasonable interval (such as every 1-5 minutes). Use a different sink implementation that doesn't rely on Flink's checkpointing mechanism. Configure a very aggressive rolling policy, though this still requires checkpointing for final commits.
+  - A rolling policy in Flink's FileSink determines when to close the current in-progress file and start writing to a new one. It doesn't control when data is committed to its final destination - that's still determined by checkpoints. Rolling policies typically consider:
+      - Size: Close a file when it reaches a certain size (e.g., 5MB)
+      - Time-based rollover: Close a file after a specific time has passed (e.g., 1 minute)
+      - Inactivity: Close a file if no new data has arrived for some time (e.g., 30 seconds)
+  - Flink stores various files as part of checkpointing to ensure that the application state can be recovered in case of failures. Here's a breakdown of what Flink stores during checkpointing:
+      - State Snapshot Files
+      - Operator State Files: Contains the state for each operator in your Flink job: Keyed state (e.g., ValueState, ListState, MapState), Operator state (e.g., ListState for non-keyed operators), Window state (e.g., window contents and triggers).
+      - Metadata Files: Information about the checkpoint itself: Checkpoint ID and timestamp, Job/Task information, References to all state files, Completion status
+      - Barrier Information: Data about the checkpoint barriers that were used to create the checkpoint
+      - For File Systems (like FileSink): When using the FileSink or similar components, checkpoints also store:
+          - Pending File Information: References to files that are in the "pending" state, File paths, Creation timestamps, Size information, Target final locations
+          - In-Progress File Information: References to files that were being written at the time of the checkpoint: Current paths, Current sizes, Open file handles (conceptually), etc.
+  ```
+  // Sample Filesink Code
+  public class DataS3Sink {
+      private static FileSink<ProcessedUserData> sink;
+      private static final ObjectMapper objectMapper = new ObjectMapper();
+      private static final Logger log = LoggerFactory.getLogger(DataS3Sink.class);
+      private DataS3Sink() {}
+      public static synchronized FileSink<ProcessedUserData> getSink() {
+          if (Objects.isNull(sink)) {
+              log.debug("Creating S3 sink for processed user data");
+              String s3BasePath = "s3a://adhoc-bucket/adhoc-path-s3/"; // The s3a:// protocol is more modern and might work better with your Hadoop configuration.
+              // Configure output files
+              OutputFileConfig fileConfig = OutputFileConfig
+                      .builder()
+                      .withPartPrefix("user-data-")
+                      .withPartSuffix(".json")
+                      .build();
+              // Create the FileSink with a custom Encoder
+              sink = FileSink
+                      .forRowFormat(
+                              new Path(s3BasePath),
+                              new Encoder<ProcessedUserData>() {
+                                  @Override
+                                  public void encode(ProcessedUserData element, OutputStream stream) throws IOException {
+                                      try {
+                                          String json = objectMapper.writeValueAsString(element);
+                                          log.debug("Writing data to S3 of {} length)",
+                                                  json.length());
+                                          stream.write(json.getBytes(StandardCharsets.UTF_8));
+                                          stream.write('\n');
+                                          log.debug("Successfully flushed data to sink");
+                                      } catch (Exception e) {
+                                          log.error("Error serializing user data", e);
+                                          throw new IOException("Error serializing user data", e);
+                                      }
+                                  }
+                              }
+                      )
+                      .withBucketAssigner(new DateTimeBucketAssigner<>("yyyy-MM-dd"))
+                      .withRollingPolicy(
+                              DefaultRollingPolicy.builder()
+                                      .withRolloverInterval(5000)        // Roll every 5 seconds
+                                      .withInactivityInterval(5000)      // Roll after 5s inactivity
+                                      .withMaxPartSize(1024)            // Roll after 1KB
+                                      .build()
+                      )
+                      .withOutputFileConfig(fileConfig)
+                      .build();
+              // Todo: Note that above withRollingPolicy() configuration should be relaxed if productionized. 
+          }
+          return sink;
+      }
+  }
+  // Note: To enable checkpointing: env.enableCheckpointing(checkpointIntervalMinutes * 60 * 1000); // Takes millisec as input
+  ```
+  - Unlike S3 sink, Kafka sink can work without explicit checkpointing. Few points: 
+    - Different Delivery Guarantees: Kafka itself provides durability by storing messages on disk, once its accepted it, its considered saved | FileSink, by contrast, needs checkpointing to ensure data is properly committed to S3
+    - Transactional Behavior: Kafka sink by default uses a "at-least-once" delivery guarantee; It doesn't need to coordinate commit points across the job, but to have "exactly-once" semantics, you would need to enable both checkpointing and transactions in the Kafka sink as well
+    - KafkaSink forwards data immediately to Kafka brokers | FileSink writes to local temporary files first, then coordinates their movement to the final destination
+- At most once, at least once, exactly once principle: [ref](https://blog.bytebytego.com/p/at-most-once-at-least-once-exactly)
+  - At-most once:It means a message will be delivered not more than once. Messages may be lost but are not redelivered.
+  - At-least once: It means it’s acceptable to deliver a message more than once, but no message should be lost.
+  - Exactly once: It is most difficult to implement and just like the name suggests. It is especially important when duplication is not acceptable and the downstream service doesn’t support idempotency. 
+- When we say “exactly-once semantics”, what we mean is that each incoming event affects the final results exactly once. Exactly once applies to the whole ecosystem of connected components. Even in case of a machine or software failure, there’s no duplicate data and no data that goes unprocessed. Flink’s Exactly Once: [ref](https://flink.apache.org/2018/02/28/an-overview-of-end-to-end-exactly-once-processing-in-apache-flink-with-apache-kafka-too/)
+- Other Flink functions: 
+  - SingleOutputStream + RichAsyncFunction + Sideoutput combined example:
+    - In short, function takes input stream does some processing and returns output stream. If any error is popped up, it is handled in a side stream. Sample eg: 
+    - ```
+      Eg:
         
-        public class UpdateUser extends RichAsyncFunction<UserEvent, Either<ProcessingResult, GenericException>> {
-        @Override
-        public void asyncInvoke(UserEvent event, ResultFuture<Either<ProcessingResult, GenericException>> future) throws Exception {
-        try {
-                  // Some business logic...
-                  ProcessingResult output = new ProcessingResult(processedUserData, msg);
-                  future.complete(Collections.singletonList(Either.Left(output)));
-              } catch (Exception e) {
-                  GenericException ex = new GenericException(event, e);
-                  future.complete(Collections.singletonList(Either.Right(ex)));
-                  return;
-              }
+      public class UpdateUser extends RichAsyncFunction<UserEvent, Either<ProcessingResult, GenericException>> {
+      @Override
+      public void asyncInvoke(UserEvent event, ResultFuture<Either<ProcessingResult, GenericException>> future) throws Exception {
+      try {
+                // Some business logic...
+                ProcessingResult output = new ProcessingResult(processedUserData, msg);
+                future.complete(Collections.singletonList(Either.Left(output)));
+            } catch (Exception e) {
+                GenericException ex = new GenericException(event, e);
+                future.complete(Collections.singletonList(Either.Right(ex)));
+                return;
             }
-        }    
+          }
+      }    
         
-        private SingleOutputStreamOperator<ProcessingResult> updateUserDetails(DataStream<UserEvent> events) {
-                SingleOutputStreamOperator<Either<ProcessingResult, GenericException>> results = AsyncDataStream.unorderedWait(
-                        events,
-                        new UpdateUser(),
-                        600000, TimeUnit.MILLISECONDS
-                ).name(UPDATE_USER_OPERATOR);
-                return results.process(
-                        new ProcessFunction<>() {
-                            /*
-                                The ProcessFunction is a low-level function that provides fine-grained control over the processing of elements in Flink. We are processing the output of the async function call to update user credit limit. If the result is successful, we collect the ProcessingResult. If the result is a failure, we output the GenericException to the side output stream.
-                             */
-                            private static final long serialVersionUID = -8056509330481115777L;
-                            /*
-                                The serialVersionUID is a unique identifier for each class that implements the Serializable interface. It is used during the deserialization process to ensure that a loaded class corresponds exactly to a serialized object. If the serialVersionUID of the loaded class does not match the serialVersionUID of the serialized object, an InvalidClassException is thrown.
-                                In simple words, Java uses this ID to verify that the serialized and deserialized objects are compatible. It helps in version control of the serialized classes. If you modify the class structure (e.g., add/remove fields), you can change the serialVersionUID to indicate that the new version is incompatible with the old serialized objects.
-                                If you do not explicitly declare a serialVersionUID, the JVM will generate one at runtime based on various aspects of the class. This can lead to unexpected InvalidClassException if the class structure changes.
-                             */
-                            @Override
-                            public void processElement(
-                                    Either<ProcessingResult, GenericException> output,
-                                    Context ctx,
-                                    Collector<ProcessingResult> collector) {
-                                if (output.isLeft()) {
-                                    log.debug("Collecting ProcessingResult output");
-                                    collector.collect(output.left());
-                                } else {
-                                    log.debug("Collecting GenericException output");
-                                    ctx.output(
-                                            ExceptionTags.GENERIC_EXCEPTION_OUTPUT_TAG,
-                                            output.right());
-                                }
-                            }
-                        });
+      private SingleOutputStreamOperator<ProcessingResult> updateUserDetails(DataStream<UserEvent> events) {
+              SingleOutputStreamOperator<Either<ProcessingResult, GenericException>> results = AsyncDataStream.unorderedWait(
+                      events,
+                      new UpdateUser(),
+                      600000, TimeUnit.MILLISECONDS
+              ).name(UPDATE_USER_OPERATOR);
+              return results.process(
+                      new ProcessFunction<>() {
+                          /*
+                              The ProcessFunction is a low-level function that provides fine-grained control over the processing of elements in Flink. We are processing the output of the async function call to update user credit limit. If the result is successful, we collect the ProcessingResult. If the result is a failure, we output the GenericException to the side output stream.
+                           */
+                          private static final long serialVersionUID = -8056509330481115777L;
+                          /*
+                              The serialVersionUID is a unique identifier for each class that implements the Serializable interface. It is used during the deserialization process to ensure that a loaded class corresponds exactly to a serialized object. If the serialVersionUID of the loaded class does not match the serialVersionUID of the serialized object, an InvalidClassException is thrown.
+                              In simple words, Java uses this ID to verify that the serialized and deserialized objects are compatible. It helps in version control of the serialized classes. If you modify the class structure (e.g., add/remove fields), you can change the serialVersionUID to indicate that the new version is incompatible with the old serialized objects.
+                              If you do not explicitly declare a serialVersionUID, the JVM will generate one at runtime based on various aspects of the class. This can lead to unexpected InvalidClassException if the class structure changes.
+                           */
+                          @Override
+                          public void processElement(
+                                  Either<ProcessingResult, GenericException> output,
+                                  Context ctx,
+                                  Collector<ProcessingResult> collector) {
+                              if (output.isLeft()) {
+                                  log.debug("Collecting ProcessingResult output");
+                                  collector.collect(output.left());
+                              } else {
+                                  log.debug("Collecting GenericException output");
+                                  ctx.output(
+                                          ExceptionTags.GENERIC_EXCEPTION_OUTPUT_TAG,
+                                          output.right());
+                              }
+                          }
+                      });
+          }
+        
+      // Assuming got extractedEvents from kafka stream and now processing it
+      SingleOutputStreamOperator<ProcessingResult> results = updateUserDetails(extractedEvents); 
+      results.getSideOutput(ExceptionTags.GENERIC_EXCEPTION_OUTPUT_TAG).process(new GenericExceptionRaiseAlertProcessor());
+      ``` 
+  - Sample Kafka as a source for Flink pipeline code:
+    ```
+    public class EventsKafkaSource {
+    private static final Logger log = LoggerFactory.getLogger(EventsKafkaSource.class);
+    private static KafkaSource<JsonNode> source;
+    private static Object obj = new Object();
+    public static KafkaSource<JsonNode> getSource() throws IOException {
+        log.debug("Setting up Kafka source");
+        if (Objects.isNull(source)) {
+            synchronized (obj) {
+                if (Objects.isNull(source)) {
+                    final ApplicationConfig config = ApplicationContext.getContext().getApplicationConfig(); // Getting all application configs
+                    final OffsetsInitializer offset = OffsetsInitializer.committedOffsets(OffsetResetStrategy.LATEST);
+                    source = KafkaSource.<JsonNode>builder()
+                                    .setBootstrapServers(config.getKafkaBrokers())
+                                    .setTopics(config.getKafkaSourceTopics())
+                                    .setGroupId(config.getKafkaConsumerGroupIdentifier())
+                                    .setProperty("auto.commit.interval.ms", "100")
+                                    .setProperty("enable.auto.commit", "true")
+                                    .setProperty("max.poll.records", "500")
+                                    .setStartingOffsets(offset)
+                                    .setValueOnlyDeserializer(new JsonNodeSchema())
+                                    .build();
+                }
             }
-        
-        // Assuming got extractedEvents from kafka stream and now processing it
-        SingleOutputStreamOperator<ProcessingResult> results = updateUserDetails(extractedEvents); 
-        results.getSideOutput(ExceptionTags.GENERIC_EXCEPTION_OUTPUT_TAG).process(new GenericExceptionRaiseAlertProcessor());
-        ```
+        }
+        return source;
+      }
+    }
+    // OffsetsInitializer.timestamp(long timestamp) in Apache Flink Kafka connector is used to initialize offsets in Kafka partitions based on a specified timestamp. This method returns an OffsetsInitializer that will set the initial offset for each partition to the offset of the first record whose timestamp is greater than or equal to the provided timestamp (in milliseconds). 
+    // Hence, if we used: final OffsetsInitializer offset = OffsetsInitializer.timestamp(1678886400000L); -> This code will initialize the Kafka source to start reading from the first record in each partition whose timestamp is greater than or equal to March 15, 2023, 00:00:00 GMT.
+    // If we are dealing with IST, convert the IST time to epoch time in milliseconds and use that value.
+    ```
 
 --------------------------------------------
 

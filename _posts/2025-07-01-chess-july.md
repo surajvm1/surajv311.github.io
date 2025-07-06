@@ -4,6 +4,6 @@ title: Chess Learnings - July
 category: nonTechnicalArticles
 ---
 
-(In progress)
+(In progress learnings)
 
 ---------------------------------------

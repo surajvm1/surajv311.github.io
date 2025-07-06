@@ -750,7 +750,7 @@ SingleOutputStreamOperator<ProcessedEvent> joinedStream = eventAMappedStream.key
         // Assuming got extractedEvents from kafka stream and now processing it
         SingleOutputStreamOperator<ProcessingResult> results = updateUserDetails(extractedEvents); 
         results.getSideOutput(ExceptionTags.GENERIC_EXCEPTION_OUTPUT_TAG).process(new GenericExceptionRaiseAlertProcessor());
-        ```
+        ``` 
 
 --------------------------------------------
 

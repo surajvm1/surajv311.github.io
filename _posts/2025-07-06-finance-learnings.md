@@ -18,6 +18,18 @@ Although, work keeps me busy, I try my best to keep track of the markets and rot
 
 ### Market Fundamentals
 
+test chars for testing 
+<br>
+<br>
+test chars for testing 
+<br>
+<br>
+test chars for testing 
+<br>
+<br>
+test chars for testing 
+<br>
+<br>
 
 **[⬆️ Back to Top](#-table-of-contents)**
 
@@ -25,11 +37,37 @@ Although, work keeps me busy, I try my best to keep track of the markets and rot
 
 ### Technical Ratios
 
+test chars for testing 
+<br>
+<br>
+test chars for testing 
+<br>
+<br>
+test chars for testing 
+<br>
+<br>
+test chars for testing 
+<br>
+<br>
+
 **[⬆️ Back to Top](#-table-of-contents)**
 
 ---
 
 ### Other Info
+
+test chars for testing 
+<br>
+<br>
+test chars for testing 
+<br>
+<br>
+test chars for testing 
+<br>
+<br>
+test chars for testing 
+<br>
+<br>
 
 **[⬆️ Back to Top](#-table-of-contents)**
 

@@ -9,69 +9,32 @@ Although, work keeps me busy, I try my best to keep track of the markets and rot
 
 ## Table of Contents
 
-- [Table of Contents](#-table-of-contents)
-- [Market Fundamentals](#-market-fundamentals)
-- [Technical ratios](#️-technical-ratios)
-- [Other Info](#️-other-info)
+- [Table of Contents](#table-of-contents)
+- [Market Fundamentals](#market-fundamentals)
+- [Technical Ratios](#technical-ratios)
+- [Other Info](#other-info)
 
 ---
 
 ### Market Fundamentals
 
-test chars for testing 
-<br>
-<br>
-test chars for testing 
-<br>
-<br>
-test chars for testing 
-<br>
-<br>
-test chars for testing 
-<br>
-<br>
+...
 
-**[⬆️ Back to Top](#-table-of-contents)**
+**[⬆️ Back to Top](#table-of-contents)**
 
 ---
 
 ### Technical Ratios
 
-test chars for testing 
-<br>
-<br>
-test chars for testing 
-<br>
-<br>
-test chars for testing 
-<br>
-<br>
-test chars for testing 
-<br>
-<br>
+...
 
-**[⬆️ Back to Top](#-table-of-contents)**
+**[⬆️ Back to Top](#table-of-contents)**
 
 ---
 
 ### Other Info
 
-test chars for testing 
-<br>
-<br>
-test chars for testing 
-<br>
-<br>
-test chars for testing 
-<br>
-<br>
-test chars for testing 
-<br>
-<br>
+...
 
-**[⬆️ Back to Top](#-table-of-contents)**
-
-
----------------------------------------
-
+**[⬆️ Back to Top](#table-of-contents)**
 

@@ -6,59 +6,14 @@ category: technicalArticles
 
 > From my experience working at [Simpl](https://simpl.com/). 
 
-I worked on an interesting task along with the devops team of cleaning up a bulky legacy Postgres table in the db, which was causing performance impact in other tables in db's in the cluster (Eg: Sometimes auto vacuum command would trigger to clean up the bloat, locking table, impacting writes in other tables in the cluster)
-We had a kafka consumer, which consumed-parsed-loaded data in real-time in the table.
-The table had over ~ 1.6B rows having roughly a month of data; ~ 600GB total size; Of which indexes size ~ 125GB, toast size ~ 125GB.
-Query:
-```
-SELECT
-    t.table_schema || '.' || t.table_name AS table_full_name,
-    COALESCE(c.reltuples, 0) AS estimated_rows,
-    pg_size_pretty(pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name))) AS total_size,
-    pg_size_pretty(pg_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name))) AS table_size,
-    pg_size_pretty(pg_indexes_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name))) AS indexes_size,
-    pg_size_pretty(pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name)) - pg_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name))) AS toast_size
-FROM
-    information_schema.tables t
-JOIN
-    pg_class c ON c.relname = t.table_name
-JOIN
-    pg_namespace n ON n.nspname = t.table_schema AND n.oid = c.relnamespace
-WHERE
-    t.table_schema NOT IN ('information_schema', 'pg_catalog')
-    AND t.table_type = 'BASE TABLE'
-ORDER BY
-    pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name)) DESC;
-```
-A daily batch job was running to delete data older than 30 days, but the catch was that the command which it was using was `DELETE FROM <tableNameX> WHERE created_at < '<current_time_minus_thirty_days>'` on the writer postgres instance - and this is not an effective command (discussed later)
-Crisp points learned & strategy: 
-- Post discussing with teams - concrete use of data was only for 1 week, hence we could proceed with deleting data older than 7 days. Expected downtime was communicated in advance. 
-
-
-
+I worked on an interesting task along with the devops team of cleaning up a bulky legacy Postgres table in the db, which was causing cluster-wide performance degradation (Eg: Auto-vacuum processes were triggering frequently, locking table and impacting writes across the entire database cluster). 
+Example:
 <img src="{{ site.baseurl }}/public/images/auto-vacuum-table-load-increase.png" alt="Auto vacuum table load increase in cluster" class="blog-image">
-<img src="{{ site.baseurl }}/public/images/table-load-decrease-later.png" alt="Decreased cluster load after activity - blue chunk in graph" class="blog-image">
+The table was loaded with real-time data from a Kafka consumer running round the clock.
+It had over ~ 1.6B rows having roughly a month of data; ~ 600GB total size; Of which indexes size ~ 125GB, toast size ~ 125GB. A daily batch job was running to delete data older than 30 days. Command which it used: `DELETE FROM <tableNameX> WHERE created_at < '<current_time_minus_thirty_days>'` on the writer postgres instance - and this is not an effective command (discussed later)
 
-
-
-# Cleaning Up a 1.6 Billion Row PostgreSQL Table in Production
-
-## Problem Statement
-
-A legacy PostgreSQL table with 1.6 billion rows was causing cluster-wide performance degradation. Auto-vacuum processes were triggering frequently, locking tables and impacting writes across the entire database cluster.
-
-## Table Metrics
-
-**Initial State:**
-- 1.6 billion rows (approximately 1 month of data)
-- Total size: ~600GB
-- Index size: ~125GB
-- TOAST size: ~125GB
-- Data ingestion: Real-time via Kafka consumer
-- Retention requirement: Only 7 days needed (was storing 30 days)
-
-**Diagnostic Query Used:**
-```sql
+Query to get metadata of all tables in db:
+```
 SELECT
     t.table_schema || '.' || t.table_name AS table_full_name,
     COALESCE(c.reltuples, 0) AS estimated_rows,
@@ -79,56 +34,49 @@ ORDER BY
     pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name)) DESC;
 ```
 
-## Why the Original Approach Failed
+Crisp points learned & strategy: 
+- Post discussing with teams - it was found concrete requirement of data was only for 1 week, hence we could proceed with deleting data older than 7 days. Expected downtime was communicated in advance. 
+- Key PostgreSQL Concepts
+  - **Table Bloat:**
+    - Dead tuples from UPDATE/DELETE operations
+    - Space not immediately reclaimed
+    - Requires VACUUM to mark as reusable
+    - Excessive bloat degrades query performance
+  - **Auto-vacuum:**
+    - Automatically removes dead tuples
+    - Runs when threshold reached
+    - Can lock tables during operation
+    - Essential but can impact performance on large tables
+  - **TOAST (The Oversized-Attribute Storage Technique):**
+    - Stores large column values separately
+    - Triggered when row size exceeds ~2KB
+    - Adds complexity to cleanup operations
+- Existing deletion strategy using `DELETE` was not effective. 
+  - DELETE operations don't reclaim disk space immediately
+  - Creates massive amounts of dead tuples (bloat)
+  - Triggers aggressive auto-vacuum cycles
+  - Auto-vacuum locks table during cleanup
+  - Impacts performance of concurrent writes
+  - TOAST data cleanup is particularly expensive
+- Solution Options Evaluated
+  - **Option 1: New Table with Different Name**
+    - Minimal downtime
+    - Risk: Services might miss updating table name
+    - Rejected due to operational risk/backward compatibility in workflows.
+  - **Option 2: Recreate with Daily Partitions**
+    - Same table name maintained
+    - 1-3 hours downtime
+    - Data builds back over 7 days
+  - **Option 3: Drop and Recreate (Selected)**
+    - 10-20 minute downtime
+    - No backfill required
+    - Minimal impact
 
-**Existing deletion strategy:**
-```sql
-DELETE FROM tableNameX WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '30 days'
-```
 
-**Problems with this approach:**
-- DELETE operations don't reclaim disk space immediately
-- Creates massive amounts of dead tuples (bloat)
-- Triggers aggressive auto-vacuum cycles
-- Auto-vacuum locks table during cleanup
-- Impacts performance of concurrent writes
-- TOAST data cleanup is particularly expensive
 
-## Key PostgreSQL Concepts
+ 
 
-**Table Bloat:**
-- Dead tuples from UPDATE/DELETE operations
-- Space not immediately reclaimed
-- Requires VACUUM to mark as reusable
-- Excessive bloat degrades query performance
 
-**Auto-vacuum:**
-- Automatically removes dead tuples
-- Runs when threshold reached
-- Can lock tables during operation
-- Essential but can impact performance on large tables
-
-**TOAST (The Oversized-Attribute Storage Technique):**
-- Stores large column values separately
-- Triggered when row size exceeds ~2KB
-- Adds complexity to cleanup operations
-
-## Solution Options Evaluated
-
-**Option 1: New Table with Different Name**
-- Minimal downtime
-- Risk: Services might miss updating table name
-- Rejected due to operational risk
-
-**Option 2: Recreate with Daily Partitions**
-- Same table name maintained
-- 1-3 hours downtime
-- Data builds back over 7 days
-
-**Option 3: Drop and Recreate (Selected)**
-- 10-20 minute downtime
-- No backfill required
-- Minimal impact (only affects 2-hour queries)
 
 ## Implemented Solution
 
@@ -240,5 +188,16 @@ Partitioning transformed an unmanageable 1.6B row table into a self-maintaining 
 
 
 
-------------------------------------------------
 
+
+
+
+
+
+
+
+
+Final impact: Decrease in load (blue)
+<img src="{{ site.baseurl }}/public/images/table-load-decrease-later.png" alt="Decreased cluster load after activity - blue chunk in graph" class="blog-image">
+
+------------------------------------------------

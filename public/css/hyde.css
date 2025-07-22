@@ -138,11 +138,15 @@ a.sidebar-nav-item:focus {
 .content {
   padding-top:    4rem;
   padding-bottom: 4rem;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%;
 }
+
 
 @media (min-width: 48em) {
   .content {
-    max-width: 38rem;
+    max-width: 48rem;
     margin-left: 16rem;
     margin-right: 2rem;
   }
@@ -152,6 +156,7 @@ a.sidebar-nav-item:focus {
   .content {
     margin-left: 18rem;
     margin-right: 4rem;
+    max-width: 60rem; /* even wider on large screens */
   }
 }
 
@@ -261,4 +266,10 @@ a.sidebar-nav-item:focus {
 .theme-base-0f .content a,
 .theme-base-0f .related-posts li a:hover {
   color: #8f5536;
+}
+
+@media (min-width: 80em) {
+  .content {
+    max-width: calc(100vw - 20rem); /* prevent sidebar overlap */
+  }
 }

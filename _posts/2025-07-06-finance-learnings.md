@@ -2382,6 +2382,7 @@ Earning money is great, but being able to minimize taxes legally is even better.
 
 ## Other Info
 
+- None for now. 
 
 
 **[⬆️ Back to Top](#table-of-contents)**

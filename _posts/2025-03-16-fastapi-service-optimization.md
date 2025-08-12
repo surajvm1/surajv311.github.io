@@ -21,8 +21,11 @@ Crisp points on things that worked bring down p99 of the API from 150'ish ms to 
 - Checked with other teams if they call service with keep-alive TCP connections options (would reduce TCP handshake for every new connection/API call which is made)
 - Worked with teams to have some of the relevant data sent in API post body itself, rather than us calling some external APIs to fetch the same data from them.
 - Have to explore if caching (external via Redis or internal maintaining something in a data-structure - logic evaluation caching) fits in any usecase for similar requests we get + explore if the way we do evaluation in rules, can we fit multi-threading so that we find the satisfying rule(s) from all set after evaluation, and based on priority return the desired rule only, rather than o(n) iteration in single thread.
-- Used set, rather than list in places to hold multiple objects/related data - so when accessing data or checking presence of data point from it, set is better (since avg case complexity in set is o(1) and o(n) for list). Also in code logic, found common pattern in evaluation logic and segregated code accordingly so that lesser rules are evaluated for related type of user. Also we used string parser post Template conversion/substitution of expression in rules - internally it used Abstract Syntax Tree, hence the ingredients in rules were also trimmed down to be minimal yet effective ones, so that our abstract tree formation is smaller and evaluation is fast. 
+- Used set, rather than list in places to hold multiple objects/related data - so when accessing data or checking presence of data point from it, set is better (since avg case complexity in set is o(1) and o(n) for list). Also in code logic, found common pattern in evaluation logic and segregated code accordingly so that lesser rules are evaluated for related type of user. Also we used string parser post Template conversion/substitution of expression in rules - internally it used Abstract Syntax Tree, hence the ingredients in rules were also trimmed down to be minimal yet effective ones, so that our abstract tree formation is smaller and evaluation is fast. Each rule evaluation was also tracked, added time perf_counter functions.  
 - Etc. 
+
+<img src="{{ site.baseurl }}/public/images/rule_evaluate.png" alt="rule_evaluate pic" class="blog-image">
+
 
 ------------------------------------------------
 

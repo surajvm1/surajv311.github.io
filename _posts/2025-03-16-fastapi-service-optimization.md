@@ -29,4 +29,4 @@ Crisp points on things that worked bring down p99 of the API from 150'ish ms to 
 <img src="{{ site.baseurl }}/public/images/p99-fapi.png" alt="p99 api pic" class="blog-image">
 
 ------------------------------------------------
-
+ 

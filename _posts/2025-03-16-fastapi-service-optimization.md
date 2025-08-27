@@ -6,7 +6,7 @@ category: technicalArticles
 
 > From my experience working at [Simpl](https://simpl.com/). 
 
-One of things I've worked on in my time at Simpl is optimizing a backend service (Python FastAPI based) - the service used to evaluate user and returned a response. As a part of evaluation we used ingredients we got from API post body request, called external db's to get some data, external APIs to get some data, ran evaluation logic and returned a response. 
+One of things I've worked on in my time at Simpl is optimizing a backend service (Python FastAPI based) - the service used to evaluate user based on some rules and returned a response. As a part of evaluation we used ingredients we got from API post body request, called external db's to get some data, external APIs to get some data, ran evaluation logic and returned a response. 
 Crisp points on things that worked bring down p99 of the API from 150'ish ms to 75'ish ms - p90/95 were even lower ofcourse; Note that there are some more avenues I see to optimize this further, but got occupied with other priority work, hence did not spend time there, but will work again in near future.
 - Firstly, for monitoring had integrated OTel telemetry metrics, and monitored critical functions used in API flow and what was is taking most time. Ensured this is not blocking main thread. 
 <img src="{{ site.baseurl }}/public/images/api-metrics-p99.png" alt="api-metrics-p99" class="blog-image">

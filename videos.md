@@ -10,7 +10,7 @@ title: Videos
 <ul>
     <li>
         <a href="https://www.youtube.com/@jarusve" target="_blank">
-        Youtube Channel - Jarusve's videos
+        Youtube Channel - Jarusve
         </a>
     </li>
     <li>

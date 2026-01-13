@@ -6,7 +6,7 @@ category: technicalArticles
 
 > From my experience working at [Punch](https://www.punch.trade/). Read docs, youtube, GPT explanations. 
 
-It is possible I may take some detours as a part of understanding things 'properly'. 
+Learning Golang!. I may take occasional detours as a part of understanding things 'properly'. 
 
 ### Fundamentals
 

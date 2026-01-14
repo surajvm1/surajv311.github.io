@@ -333,11 +333,10 @@ hello-go/
     └── add.go
 ```
 Create go.mod using: `go mod init hello-go`
-
 go.mod can be imagined as: requirements.txt + project identity + version lock
+Keeping module name same as folder name is best practice, else when you import other packages, you'll have to do an explicit handling. 
 
 Files: 
-
 ```
 mathutils/add.go:
 package mathutils
@@ -345,7 +344,7 @@ package mathutils
 func Add(a int, b int) int {
     return a + b
 }
-// Note: Package name mathutils would be same across all files in that folder
+// Note: Package name mathutils would be same across all files in that folder. Note that main.go, is a special package, since it's entrypoint file.  
 
 main.go:
 package main

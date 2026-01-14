@@ -159,9 +159,9 @@ For Single variable:
 
 2. var x = "" -> Used inside/outside functions; Go infers 'x' is a string during compile time (Go is statically typed language); Declares + Assigns value
 
-3. x := "" -> Used ONLY inside functions; Declares + Assigns value
+3. x := "" -> Used ONLY inside functions; Declares + Assigns value; It's var only, not const (we learn about this later)
 
-4. x = "hello" -> Used inside/outside functions; Assigns ONLY
+4. x = "hello" -> Used inside/outside functions; Assigns ONLY, hence 'x' must exist already
 
 For Multiple variables:
 1. 
@@ -186,9 +186,7 @@ var name, age, active = "suraj", 25, true
 4. 
 func main() {
     name, age, active := "suraj", 25, true
-    _ = name
-    _ = age
-    _ = active
+    _, _, _ = name, age, active
 }
 _ -> It is a blank identifier. Since Go requires every declared variable MUST be used, blank identifier flags to compiler that the variable exists, not deliberately using it, but may use in future. 
 ```
@@ -211,54 +209,117 @@ _ -> It is a blank identifier. Since Go requires every declared variable MUST be
       ```
   - DS: 
   ```
-  The type is always on the RIGHT side. Eg: 
-  var x int
-  var s []string
-  var m map[string]int
+  The type is always on the RIGHT side, if not inferring. Eg: var x int, var s []string, var m map[string]int
 
   Normal variables ~
-  x := 10
+  > x := 10
+  > var x string = ""
+  > var name string
+    name = "Suraj"
+
   Arrays (Fixed size) ~ 
-  x := [3]int{1, 2, 3}
+  > var a [3]string
+    a[0] = "a" 
+  > x := [3]int{1, 2, 3}
+
   Slices (Dynamic size) ~
-  s := []int{1, 2, 3}
+  > s := []int{1, 2, 3} // or 
+  > s2 := []string{}
+    s2 = append(s, "hello") // append is only in slice, not arrays
+  > arr := [5]int{1, 2, 3, 4, 5}
+    s := arr[1:4] // [2 3 4] // slice from an array 
+
   Maps (key → value) ~
-  m := map[string]int{}
+  > m := map[string]int{
+          "apple":  10,
+          "banana": 20,
+        }
+    price := m["apple"]
+
   Structs ~ 
-  u := User{
-      Name: "suraj",
-      Age:  25,
-  }
+  > type User struct {
+        Name string
+        Age  int
+    }
+    u := User{
+        Name: "suraj",
+        Age:  25,
+    }
+    fmt.Println(u.Name) // Capitalized, hence public access from all packages, if lowercase letters named in struct then private access. 
+  
+  Pointers ~ 
+  > x := 10
+    p := &x   // pointer to x
+
+  Interface (behavior, not data) ~
+  > type Speaker interface {
+      Speak() string
+    }
+    // Any type that has Speak() string automatically implements Speaker interface, no need to use stuff like override, etc. Use eg: 
+    func (p Person) Speak() string {
+        return "Hello, I am " + p.Name
+    }
   ```
   - DataTypes:
   ```
-  10        // int, we do have int8, int64, uint/uint8... - unsigned int which has positive values, etc... 
-  3.14      // float64
-  true      // bool
-  "hi"      // string
-  'A'       // byte
-  '世'       // rune
-  [3]int{}  // array
-  []int{}   // slice
-  map[]{}   // map
-  struct{}  // struct
-  *x        // pointer
-  interface // behavior
+  10      // int, we do have int8, int64, uint/uint8... - unsigned int which has positive values, etc... 
+  3.14    // float64
+  true    // bool
+  "hi"    // string
+  'A'     // byte
+  '世'     // rune
   ```
+- Loops/If-Else/Switches
+  ```
+  Normal loop:
+  for i := 0; i < 5; i++ {
+    fmt.Println(i)
+  }
 
+  Infinite loop:
+  for {
+    fmt.Println("running")
+  }
 
+  Loop over slice/map:
+  for i, v := range nums {
+    fmt.Println(i, v)
+  }
 
+  If-Else:
+  if x > 10 {
+    fmt.Println("big")
+  } else {
+      fmt.Println("small")
+  }
 
+  Switch:
+  switch day {
+    case "Mon":
+        fmt.Println("Start")
+    case "Sun":
+        fmt.Println("Rest")
+    default:
+        fmt.Println("Other")
+  }
+  ```
+- Functions
+  ```
+  Normal:
+  func add(a int, b int) int {
+    return a + b
+  }
 
+  Multiple returns: 
+  func divide(a, b int) (int, error) {
+    if b == 0 {
+        return 0, errors.New("divide by zero")
+    }
+    return a / b, nil
+  }
 
-
-<<<< TO ADD - loops conditions etc go concurrency stuff >>>>
-
-
-
-
-
-
+  // Structs, Interface, covered in past. 
+  ```
 
 ### Phase 2
 

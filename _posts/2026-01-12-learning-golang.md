@@ -363,5 +363,59 @@ Run program using: go run .
 To install third party packages: go get github.com/google/uuid
 When you do so, a go.sum file is created (you don’t edit this). It stores checksums, ensures integrity; Can be imagined as pip-lock/poetry.lock file in Python. 
 
+### Phase 3
+
+Go - Memory model + Concurrency 
+- Memory model
+  - A Go binary compiled for macOS will not run on Windows because binaries are OS- and architecture-specific (like ARM64, x86_64), but Go allows cross-compiling by targeting the desired OS and CPU (like `GOOS=windows GOARCH=amd64 go build`).
+  - Every program uses two main memory regions (both reside in RAM):
+    - Stack: Fast, Automatically managed, Function-scoped, Freed when function returns
+    - Heap: Slower than stack, Manually (C) or GC-managed (Go/Java/Python), Used when data must live longer
+  - Go decides stack vs heap at compile time using escape analysis - you don't do it, whereas Java relies on runtime JIT optimizations and Python allocates everything on the heap by design.
+  - What Go GC does:
+    - Find live objects, Free unreachable objects, Run concurrently with your program. This is called Concurrent mark-and-sweep GC.
+    - Properties: Mostly concurrent, Small pause times, Optimized for server workloads
+  - In Go, how fast you allocate matters more than how much memory you use. 
+  - new(T) vs make(T)
+    - new: Allocates memory, Returns *T, Does NOT initialize runtime structures
+    - make: Allocates + initializes, Returns T, Used for: slices, maps, channels
+- Concurrency
+  - Go runs goroutines using its own scheduler on top of the OS scheduler. The OS schedules threads on CPU cores. The Go runtime schedules goroutines onto those threads using the G-M-P model, minimizing OS context switches and making concurrency cheap.
+  - Python/Java use OS level threads which is heavy. Goroutine is NOT an OS thread. Under the hood (we would learn more):
+  ```
+  Millions of Goroutines
+        ↓
+  Go Scheduler
+        ↓
+  Few OS Threads
+        ↓
+  CPU Cores
+  
+  There is M:N scheduling. M goroutines & N OS threads. 
+  ```
+  - GMP Model: 
+    - G – Goroutine: Lightweight execution unit; Starts with ~2KB stack; Millions possible; Scheduled by Go runtime
+    - M – Machine (OS Thread): Real OS thread (pthread, etc.); Scheduled by OS scheduler; Executes Go code only when it owns a P
+    - P – Processor (Logical Processor): Go runtime abstraction; Holds: **Run queue of goroutines**, Scheduler context; Count = GOMAXPROCS
+    - A goroutine runs only when an M holds a P.
+    ```
+    CPU Core
+      ↓
+    OS Scheduler → M (thread)
+      ↓
+    Go Scheduler → P → G (goroutine)
+    ```
+    - Assume configuration: Physical CPU cores = 4, Ps(GOMAXPROCS) = 10, OS threads (Ms) = 5. Gs could be say 100s. 
+      - Maximum true parallelism = number of CPU cores. Hence, Max parallel execution = 4 goroutines
+      - Ps do not map 1:1 to cores, they are logical. 
+      - For Ps: At most 4Ms can be running simultaneously (one per core). Each running M must own 1P. So at most 4Ps can be active at a time. Remaining 6Ps are idle.
+      - For Ms: OS scheduler runs 4Ms max. 1M will be waiting / sleeping. 
+      - Having more Ms/Ps than physical capacity is waste of resources. 
+  - In case of any blocking scenario: Goroutine blocks → Go detaches it; M runs another G; OS thread stays busy. 
+  - main() function is initial/default goroutine. 
+  - Context switching: 
+    - OS thread switch: Save registers, Kernel mode, Expensive. 100k threads -> impossible
+    - Goroutine switch: User-space, Save small state, Very cheap. 100k goroutines -> fine
+
 
 ------------------------------------------------

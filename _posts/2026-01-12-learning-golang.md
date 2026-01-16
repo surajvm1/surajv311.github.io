@@ -377,8 +377,66 @@ Go - Memory model + Concurrency
     - Properties: Mostly concurrent, Small pause times, Optimized for server workloads
   - In Go, how fast you allocate matters more than how much memory you use. 
   - new(T) vs make(T)
-    - new: Allocates memory, Returns *T, Does NOT initialize runtime structures
-    - make: Allocates + initializes, Returns T, Used for: slices, maps, channels
+    - In summary:
+      - new: Allocates memory, Returns *T, Does NOT initialize runtime structures
+      - make: Allocates + initializes, Returns T, Used for: slices, maps, channels
+    - In detail: (Consider slices data structure as example)
+      - Arrays in Go are static data structures with a fixed type and size. Slices are dynamic and built on top of arrays, defined by three components:
+        - Data: pointer to the underlying array
+        - Len: length of the slice
+        - Cap: capacity of the slice (max length or array size)
+      - Diff:
+
+      | Feature | `new` | `make` |
+      |-------|-------|--------|
+      | **Purpose** | Allocates memory but does not initialize runtime structures (memory is zeroed) | Allocates **and initializes** slices, maps, and channels |
+      | **Return value** | Pointer to zeroed memory of type `T` (`*T`) | Initialized (non-zero) value of type `T` |
+      | **Slice underlying array** | Not allocated; pointer is `nil` | Allocates underlying array with specified length and capacity |
+      | **Resulting slice** | `nil` slice (no backing array) | Non-`nil` slice with backing array |
+      | **Usage** | Returns a pointer → needs dereferencing | Returns the value directly |
+      | **Applicable types** | Any type (`struct`, `int`, `array`, etc.) | Only `slice`, `map`, `channel` |
+      | **Ready to use?** | Often **not usable directly** | **Immediately usable** |
+      - Zeroing means setting allocated memory to the zero value of the type (discussed in Fundamentals sections as well): Numeric types- 0, String- empty string "", Boolean- false, Pointer/slice/map/channel- nil, Struct- all fields zeroed by their respective zero values. 
+      - When using new for a slice, the slice’s data pointer is nil, meaning no underlying array is allocated.
+      - When using make, the underlying array is allocated and initialized to its zero values, making the slice ready for use.
+      - There is no difference in observable behavior. But performance-wise, there is, Nil slices (created with new) will trigger automatic memory allocations and array resizing when elements are appended, potentially causing overhead due to repeated allocations and copying. Slices created with make and a predefined capacity avoid repeated allocations since the underlying array is pre-allocated.
+      ```
+      Note:
+      sMake := make([]string, 3, 5)
+      This means:
+      | Property                  | Value      |
+      | ------------------------- | ---------- |
+      | Type                      | `[]string` |
+      | Length (`len`)            | `3`        |
+      | Capacity (`cap`)          | `5`        |
+      | Underlying array size.    | `5`        |
+      Visually:
+      Underlying array (size = 5)
+      +---------+---------+---------+---------+---------+
+      |   ""    |   ""    |   ""    |    ?    |    ?    |
+      +---------+---------+---------+---------+---------+
+        ↑         ↑         ↑
+        |--------- len=3 ---|
+        |--------------- cap=5 ----------------|
+      First 3 elements exist and are initialized ("")
+      Last 2 slots exist but are not part of the slice yet
+
+      Length (len): Number of elements you can access, Valid indices: 0 → len-1, Anything beyond len cannot be indexed. 
+      Capacity (cap): Total space available before reallocation, How much you can grow using append without allocating new memory. 
+
+      Now, if we do: sMake = append(sMake, "a"), sMake = append(sMake, "b")
+      +---------+---------+---------+---------+---------+
+      |   ""    |   ""    |   ""    |  "a"    |  "b"    |
+      +---------+---------+---------+---------+---------+
+      If you append beyond capacity. What Go does internally (also called Reallocation): 
+      > Allocate a new, bigger array
+      > Copy old elements
+      > Append new element
+      > Point slice header to new array
+      > Old array is garbage-collected
+      Capacity growth strategy is not guaranteed — don’t depend on exact numbers. 
+      Very common pattern to initialize in Go: s := make([]T, 0, N) -> Means I have no elements yet, but I know how many I’ll need.
+      ```
 - Concurrency
   - Go runs goroutines using its own scheduler on top of the OS scheduler. The OS schedules threads on CPU cores. The Go runtime schedules goroutines onto those threads using the G-M-P model, minimizing OS context switches and making concurrency cheap.
   - Python/Java use OS level threads which is heavy. Goroutine is NOT an OS thread. Under the hood (we would learn more):

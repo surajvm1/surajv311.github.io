@@ -118,9 +118,8 @@ Nuances in Go:
   | rarely used      | commonly used           |
   ```
 - func init() in Go is a special function that runs automatically during a package's initialization, before any other functions in the package are called, including main(). It's used for setup and configuration tasks. 
-- No function overloading. 
-- Other things like built-in concurrency, defer, etc., will add about this in later parts. 
-- ```
+- No function overloading or hardcore OOPs kind of concept in Go. 
+  ```
   A random example: 
   Java style OOP:
     class User {
@@ -437,6 +436,29 @@ Go - Memory model + Concurrency
       Capacity growth strategy is not guaranteed — don’t depend on exact numbers. 
       Very common pattern to initialize in Go: s := make([]T, 0, N) -> Means I have no elements yet, but I know how many I’ll need.
       ```
+  - defer schedules a function call to run when the surrounding function returns. It executes in LIFO order. Although, avoid using it in extreme tight loops. 
+    ```
+    Eg 1: 
+    func main() {
+      defer fmt.Println("world")
+      fmt.Println("hello")
+    }
+    Output: 
+    hello
+    world
+
+    Eg 2: 
+    func main() {
+      defer fmt.Println(1)
+      defer fmt.Println(2)
+      defer fmt.Println(3)
+    }
+    Output: 
+    3
+    2
+    1
+    ``` 
+  
 - Concurrency
   - Go runs goroutines using its own scheduler on top of the OS scheduler. The OS schedules threads on CPU cores. The Go runtime schedules goroutines onto those threads using the G-M-P model, minimizing OS context switches and making concurrency cheap.
   - Python/Java use OS level threads which is heavy. Goroutine is NOT an OS thread. Under the hood (we would learn more):
@@ -470,10 +492,20 @@ Go - Memory model + Concurrency
       - For Ms: OS scheduler runs 4Ms max. 1M will be waiting / sleeping. 
       - Having more Ms/Ps than physical capacity is waste of resources. 
   - In case of any blocking scenario: Goroutine blocks → Go detaches it; M runs another G; OS thread stays busy. 
-  - main() function is initial/default goroutine. 
   - Context switching: 
     - OS thread switch: Save registers, Kernel mode, Expensive. 100k threads -> impossible
     - Goroutine switch: User-space, Save small state, Very cheap. 100k goroutines -> fine
-
+  - main() function is initial/default goroutine. 
+  ```
+  Sample Go routine: 
+  func main() {
+      sayHello("Alice") // Normal function call - blocks until complete
+      go sayHello("Bob") // Goroutine - runs concurrently - simply add go keyword 
+      time.Sleep(time.Second) // Without this sleep, main would exit before the goroutine runs
+  }
+  ```
+    - When main exits, the entire program exits, killing all goroutines regardless of whether they've finished their work.
+    - time.Sleep “works” but is wrong, for obvious reasons like although it gives time for goroutine to complete, you can't be guessing the timing. 
 
 ------------------------------------------------
+time in golang

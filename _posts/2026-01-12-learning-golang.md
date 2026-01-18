@@ -364,7 +364,7 @@ When you do so, a go.sum file is created (you don’t edit this). It stores chec
 
 ### Phase 3
 
-Go - Memory model + Concurrency 
+Go - Memory model + Error handling + Concurrency 
 - Memory model
   - A Go binary compiled for macOS will not run on Windows because binaries are OS- and architecture-specific (like ARM64, x86_64), but Go allows cross-compiling by targeting the desired OS and CPU (like `GOOS=windows GOARCH=amd64 go build`).
   - Every program uses two main memory regions (both reside in RAM):
@@ -436,7 +436,8 @@ Go - Memory model + Concurrency
       Capacity growth strategy is not guaranteed — don’t depend on exact numbers. 
       Very common pattern to initialize in Go: s := make([]T, 0, N) -> Means I have no elements yet, but I know how many I’ll need.
       ```
-  - defer schedules a function call to run when the surrounding function returns. It executes in LIFO order. Although, avoid using it in extreme tight loops. 
+- Error handling  
+  - defer: schedules a function call to run when the surrounding function returns. It executes in LIFO order. Although, avoid using it in extreme tight loops. 
     ```
     Eg 1: 
     func main() {
@@ -458,7 +459,152 @@ Go - Memory model + Concurrency
     2
     1
     ``` 
-  
+  - panic & recover: immediately stops normal execution of the current goroutine and begins stack unwinding. It’s a last-resort mechanism for programmer errors or truly unrecoverable states. Only the panicking goroutine unwinds its stack (will learn about this in ex).
+    - Deferred functions or other goroutines still run. 
+    - Program crashes unless the panic is 'recovered'. recover() stops stack unwinding and only works inside a deferred function.
+    - Note that if the caller can handle it → return an error. If the program is broken → panic.
+    ```
+    Ex 1: 
+    func main() {
+      panic("something went wrong")
+    }
+    Output: panic: something went wrong
+
+    Ex 2: 
+    func main() {
+      defer fmt.Println("cleanup")
+      panic("boom")
+    }
+    Output: 
+    cleanup
+    panic: boom
+
+    Ex 3: Unwinding of stack: 
+    Normal function calls: f1 → f2 → f3 → return → return → return
+    Assume in panic: f1 → f2 → f3 → panic 
+    At this point: 
+      Go stops normal execution
+      Go says: “I am not returning normally”
+      Go enters panic mode
+      The call stack looks like this at panic time:
+      [f3 stack frame]  ← panic here
+      [f2 stack frame]
+      [f1 stack frame]
+      Stack unwinding means: Go starts destroying stack frames one by one, from top to bottom.
+      But before destroying each frame, Go runs its defers.
+      Hence sequence: 
+      panic →
+      run defers of f3 →
+      remove f3 frame →
+      run defers of f2 →
+      remove f2 frame →
+      run defers of f1 →
+      remove f1 frame →
+      (no more frames)
+      → program crash
+
+    Ex 4: 
+    func f3() {
+      defer func() {
+          fmt.Println("f3 defer")
+      }()
+      panic("boom")
+    }
+    func f2() {
+      defer fmt.Println("f2 defer")
+      f3()
+    }
+    func f1() {
+      defer fmt.Println("f1 defer")
+      f2()
+    }
+    func main() {
+      f1()
+    }
+    Execution timeline: 
+    panic in f3
+    ↓
+    run f3 defer
+    ↓
+    destroy f3 frame
+    ↓
+    run f2 defer
+    ↓
+    destroy f2 frame
+    ↓
+    run f1 defer
+    ↓
+    destroy f1 frame
+    ↓
+    no recover → crash
+    Our crash could cascade all the way down. 
+    Panic should be used in cases of: programmer errors, impossible states, initialization failures. Else errors. 
+    Now add recover:
+    func f3() {
+        defer func() {
+            if r := recover(); r != nil {
+                fmt.Println("recovered:", r)
+            }
+        }()
+        panic("boom")
+    }
+    Execution now: 
+    panic in f3
+    ↓
+    run f3 defer
+    ↓
+    recover() stops panic
+    ↓
+    f3 returns normally
+    ↓
+    f2 continues
+    ↓
+    f1 continues
+    ↓
+    program continues
+    Stack unwinding stops immediately at the recover point. 
+    Note: Recover only stops panics in the same goroutine
+    ```
+  - In Go, all failures fall into two buckets:
+    - Bucket A — Expected, possible, recoverable. Handled with error. These are things that can legitimately happen even if your code is perfect. Examples:
+      - File not found
+      - Invalid user input
+      - Network timeout
+      - Permission denied
+      - API returned 500
+      - Database connection lost
+      - JSON malformed from external source
+      ```
+      data, err := os.ReadFile("config.json")
+      if err != nil {
+          return err
+      }
+      ```
+    - Bucket B — Impossible, programmer mistake, corrupted state. Handled with panic. These are situations where continuing makes no sense. Examples:
+      - Index out of bounds
+      - Nil pointer dereference
+      - Map accessed concurrently without lock
+      - Invariant violated
+      - Impossible switch case
+      ```
+      if user == nil {
+        panic("user must never be nil here")
+      }
+      ```
+    - Should everything else use panic/defer/recover?: No. It happens rarely, but good to know. Use error for 99% of cases. panic for impossible cases. Most panic calls are added after a bug is discovered in production or during testing. The evolution of code from a "crashing bug" to a "robust feature" usually follows this three-stage lifecycle:
+      - The Implicit Crash (The "Unknown" Phase)
+        - The Bug: You assume data is perfect (e.g., a pointer is never nil).
+        - The Result: The Go Runtime panics for you with a generic error (e.g., "nil pointer dereference").
+        - The Outcome: Hard to debug; the program stops without explaining why the state was invalid.
+      - The Explicit Panic (The "Defensive" Phase)
+        - The Action: You add a manual if check that calls panic("descriptive message").
+        - The Goal: To turn a "mysterious crash" into a clear assertion.
+        - The Outcome: You’ve defined a "Programmer Error." You are signaling to other developers that they are using your function incorrectly.
+      - The Graceful Error (The "Maturity" Phase)
+        - The Action: You realize the "impossible state" might actually happen in production (e.g., a database record was deleted). You replace panic with return err.
+        - The Goal: To move from crashing to communicating.
+        - The Outcome: The program remains running. The caller now has the power to log the issue, retry, or show a friendly message to the user.
+
 - Concurrency
   - Go runs goroutines using its own scheduler on top of the OS scheduler. The OS schedules threads on CPU cores. The Go runtime schedules goroutines onto those threads using the G-M-P model, minimizing OS context switches and making concurrency cheap.
   - Python/Java use OS level threads which is heavy. Goroutine is NOT an OS thread. Under the hood (we would learn more):
@@ -475,7 +621,7 @@ Go - Memory model + Concurrency
   ```
   - GMP Model: 
     - G – Goroutine: Lightweight execution unit; Starts with ~2KB stack; Millions possible; Scheduled by Go runtime
-    - M – Machine (OS Thread): Real OS thread (pthread, etc.); Scheduled by OS scheduler; Executes Go code only when it owns a P
+    - M – Machine (OS Thread): Real OS thread (pthread, etc.); Generally ~1MB; Scheduled by OS scheduler; Executes Go code only when it owns a P
     - P – Processor (Logical Processor): Go runtime abstraction; Holds: **Run queue of goroutines**, Scheduler context; Count = GOMAXPROCS
     - A goroutine runs only when an M holds a P.
     ```
@@ -509,3 +655,4 @@ Go - Memory model + Concurrency
 
 ------------------------------------------------
 time in golang
+error handling 

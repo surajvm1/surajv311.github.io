@@ -120,7 +120,7 @@ Nuances in Go:
 - func init() in Go is a special function that runs automatically during a package's initialization, before any other functions in the package are called, including main(). It's used for setup and configuration tasks. 
 - No function overloading or hardcore OOPs kind of concept in Go. 
   ```
-  A random example: 
+  Ex: 
   Java style OOP:
     class User {
         private String name;
@@ -141,7 +141,7 @@ Nuances in Go:
     func (u *User) Greet() string {
         return "Hi " + u.name
     }
-    ```
+    ```  
 
 ### Phase 1
 
@@ -459,6 +459,26 @@ Go - Memory model + Error handling + Concurrency
     2
     1
     ``` 
+    - Note: Immediately Invoked Function Expression (IIFE) allows you to define a function without a name and execute it at the same moment. Use func() { }() only if you need at least one: go, defer, isolated scope, closure over variables, inline one-time logic. Else direct code. 
+    ```
+    Eg: 
+    func(msg string) {
+      fmt.Println(msg)
+    }("Hello Go")
+    > Breakdown:
+        func(msg string) → define function
+        { ... } → logic
+        ("Hello Go") → pass arguments & execute
+    > With go keyword → run function in new goroutine
+    > defer needs a function
+        Invalid: 
+          defer file.Close()
+        Valid: 
+          defer func() {
+            file.Close()
+            db.Disconnect()
+          }()
+    ``` 
   - panic & recover: immediately stops normal execution of the current goroutine and begins stack unwinding. It’s a last-resort mechanism for programmer errors or truly unrecoverable states. Only the panicking goroutine unwinds its stack (will learn about this in ex).
     - Deferred functions or other goroutines still run. 
     - Program crashes unless the panic is 'recovered'. recover() stops stack unwinding and only works inside a deferred function.
@@ -645,14 +665,143 @@ Go - Memory model + Error handling + Concurrency
   ```
   Sample Go routine: 
   func main() {
-      sayHello("Alice") // Normal function call - blocks until complete
+      sayHello("Alice") // Normal function call, assume it prints - blocks until complete
       go sayHello("Bob") // Goroutine - runs concurrently - simply add go keyword 
-      time.Sleep(time.Second) // Without this sleep, main would exit before the goroutine runs
+      time.Sleep(time.Second) // Without this sleep, main would exit before the goroutine runs hence you will not see "Bob" being printed
   }
   ```
     - When main exits, the entire program exits, killing all goroutines regardless of whether they've finished their work.
-    - time.Sleep “works” but is wrong, for obvious reasons like although it gives time for goroutine to complete, you can't be guessing the timing. 
+    - time.Sleep “works” but is wrong, for obvious reasons like although it gives time for goroutine to complete, you can't be guessing the timing, its flaky. We should wait for events, not time, which leads to concept of WaitGroups. 
+  - WaitGroups: A sync.WaitGroup lets one goroutine wait until a set of goroutines finish.
+    - Key rules:
+      - Add(n) → number of goroutines to wait for
+      - Done() → call once per goroutine
+      - Wait() → blocks until counter reaches zero
+    - Important: WaitGroup does NOT protect data. It only synchronizes completion
+    ```
+    Ex: 
+    package main
+    import (
+      "fmt"
+      "sync"
+    )
+    var wg sync.WaitGroup
+    func sayHello(name string) {
+      defer wg.Done()   // must be called once per goroutine
+      fmt.Println("Hello", name)
+    }
+    func main() {
+      names := []string{"Alice", "Bob", "Charlie", "Diana"}
+      wg.Add(len(names)) // tell WaitGroup how many goroutines to wait for. Always call Add() before starting the goroutine
+      for _, name := range names {
+          go sayHello(name)
+      }
+      wg.Wait() // blocks until all Done() calls are made
+      fmt.Println("All greetings printed")
+    }
+    ```
+    - For a WaitGroup, you must correctly account for every goroutine you want to wait for. WaitGroup is just a counter. What if goroutines ≠ wg.Add() count?: Cases: 
+      - WaitGroup count >Total Goroutines: wg.Wait() blocks forever(deadlock), as counter doesn't reach 0.
+      - WaitGroup count< Total Goroutines: You get `panic: sync: negative WaitGroup counter`. 
+    - What if number of waitgroups to add is unknown/unbounded?: Then WaitGroup may be the wrong tool. Better alternatives: Channel + close(), Worker pool with fixed workers, Context cancellation (discussed later). 
+  - Mutex: A Mutual Exclusion lock ensures only one goroutine accesses critical data at a time. Helps in race conditions (concurrent access of data by multiple goroutines)
+
+    func increment() {
+        counter++
+    }
+    go increment()
+    go increment()
+    This may NOT produce 2. Read → modify → write is not atomic. 
+    Goroutines interleave unpredictably
+
+basic mutex:
+var (
+    counter int
+    mu      sync.Mutex
+)
+
+func increment() {
+    mu.Lock()
+    counter++
+    mu.Unlock()
+}
+
+sync.Mutex
+
+Exclusive lock
+
+Simple and fast
+
+Most common
+
+sync.RWMutex
+
+Multiple readers allowed
+
+Only one writer allowed
+Use only when:
+
+Reads >> Writes
+
+
+
+
+
+
 
 ------------------------------------------------
 time in golang
 error handling 
+Channel + close(), Worker pool with fixed workers, Context cancellation (discussed later). 
+
+
+
+  
+
+
+
+
+
+
+
+--------------------------------------------------------------
+------- to cover separately --------
+var x int = 10
+var y *int
+y = &x
+| Expression | Meaning                | Type    | Value          |
+| ---------- | ---------------------- | ------- | -------------- |
+| `x`        | normal variable        | `int`   | `10`           |
+| `&x`       | address of `x`         | `*int`  | memory address |
+| `y`        | pointer to `x`         | `*int`  | address of `x` |
+| `*y`       | value at address `y`   | `int`   | `10`           |
+| `&y`       | address of pointer `y` | `**int` | memory address |
+*int      → pointer to int
+*string   → pointer to string
+*float64  → pointer to float64
+*struct{} → pointer to struct
+*int guarantees dereferencing gives an int ~ Type safety (prevents invalid memory access)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

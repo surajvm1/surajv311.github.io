@@ -699,52 +699,271 @@ Go - Memory model + Error handling + Concurrency
       wg.Wait() // blocks until all Done() calls are made
       fmt.Println("All greetings printed")
     }
+
+     **Goroutines interleave unpredictably. Hence the print order in above example may not be same as in list string**
     ```
-    - For a WaitGroup, you must correctly account for every goroutine you want to wait for. WaitGroup is just a counter. What if goroutines ≠ wg.Add() count?: Cases: 
-      - WaitGroup count >Total Goroutines: wg.Wait() blocks forever(deadlock), as counter doesn't reach 0.
-      - WaitGroup count< Total Goroutines: You get `panic: sync: negative WaitGroup counter`. 
+    - For a WaitGroup, you must correctly account for every goroutine you want to wait for. WaitGroup is just a counter. What if goroutines ≠ wg.Add() count? Cases for count of: 
+      - Waitgroups > Code Goroutines: wg.Wait blocks forever (logical deadlock), as counter doesn't reach 0.
+      - Waitgroups < Code Goroutines: You get `panic: sync: negative WaitGroup counter`. 
     - What if number of waitgroups to add is unknown/unbounded?: Then WaitGroup may be the wrong tool. Better alternatives: Channel + close(), Worker pool with fixed workers, Context cancellation (discussed later). 
-  - Mutex: A Mutual Exclusion lock ensures only one goroutine accesses critical data at a time. Helps in race conditions (concurrent access of data by multiple goroutines)
-
+  - Mutex: A Mutual Exclusion lock ensures only one goroutine accesses critical data at a time. Helps in race conditions (concurrent access of data by multiple goroutines). In Java ecosystem, we use `volatile`/`synchronized` keywords. 
+    ```
+    Race condition: 
+      func increment() {
+          counter++
+      }
+      go increment()
+      go increment()
+      This may NOT produce 2. Read → modify → write is not atomic. 
+      Although if we add waitGroups in this, you will get visible output, but that doesn't erase the fact that your code might be in race condition. Hence we use mutex locks. 
+      Note: To know if your code is in race condition use: go run --race .
+      Other example for race condition can be: Multiple goroutines calling APIs and appending result to some list. 
+    ```
+    - Basic Mutex: Lock before accessing shared data. Unlock immediately after. Using defer to unlock is a good practice. 
+    ```
+    var (
+        counter int
+        mu      sync.Mutex
+    )
     func increment() {
+        mu.Lock()
         counter++
+        mu.Unlock()
     }
-    go increment()
-    go increment()
-    This may NOT produce 2. Read → modify → write is not atomic. 
-    Goroutines interleave unpredictably
+    ```
+    - Types of Mutexes: 
+      - sync.Mutex: Exclusive lock; Only one goroutine can access the critical section at a time; Simple, fast, commonly used. Limitation: Readers and writers are treated the same; Even read-only operations block each other
+      - sync.RWMutex: Read-Write lock; Multiple readers allowed concurrently; Only one writer allowed; Writers block readers and other writers. If your program has many reads, less writes, use this. 
+      ```
+      Eg: 
+      package main
+      import (
+        "fmt"
+        "net/http"
+        "sync"
+      )
+      var (
+        wg      sync.WaitGroup
+        mu      sync.Mutex
+        signals []string
+      )
+      func getStatusCode(endpoint string) {
+        defer wg.Done()
+        res, err := http.Get(endpoint)
+        if err != nil {
+            fmt.Println("OOPS in endpoint")
+            return
+        }
+        defer res.Body.Close()
+        mu.Lock()
+        signals = append(signals, endpoint)
+        mu.Unlock()
+        fmt.Printf("%d status code for %s\n", res.StatusCode, endpoint)
+      }
+      func main() {
+        endpoints := []string{
+            "https://google.com",
+            "https://github.com",
+            "https://golang.org",
+        }
+        wg.Add(len(endpoints)) // MUST be before starting goroutines
+        for _, ep := range endpoints {
+            go getStatusCode(ep)
+        }
+        wg.Wait() // blocks until all wg.Done() calls complete
+        fmt.Println("Signals:", signals)
+      }
+      What happens: 
+      1. wg.Add(len(endpoints)) - Tells WaitGroup how many goroutines to wait for.
+      2. go getStatusCode(ep) - Launches each HTTP call concurrently.
+      3. defer wg.Done() inside getStatusCode - Signals completion of one goroutine.
+      4. mu.Lock() / mu.Unlock() - Protects shared slice signals from data races.
+      5. wg.Wait() - Blocks main() until all HTTP calls finish.
+      ```
+  - Channels: 
+    - Go provides three major concurrency tools: sync.Mutex, sync.WaitGroup, channels - each solving a different class of problem. 
+      - What Mutex and WaitGroup Actually Solve: 
+        - sync.Mutex: Protects shared memory, Ensures exclusive access, Prevents data races.
+        - sync.WaitGroup: Waits for goroutines to finish execution, Does NOT pass data, Does NOT control access
+    - Channel is a typed conduit through which goroutines communicate. Eg: `ch := make(chan int)`. 
+      - Think of a channel as: A thread-safe queue (like a message passing queue); With built-in blocking (for backpressure handling from producer-consumer); That transfers data + control. 
+      - Philosophy: Do not communicate by sharing memory, share memory by communicating.
+      - They guarantee synchronization at the point of communication, not global ordering.
+        - Send: `ch <- value`
+        - Receive: `value := <-ch`. Note only `<-` symbol exists. 
+        - Close: `close(ch)`. Only the sender (producer) should close the channel. (No more values will be sent, Receivers can still drain existing values)
+          - If you read from a closed channel you get: 
+          ```
+          v, ok := <-ch 
+          ok == false → channel is closed
+          v → zero value
+          ```
+    - Blocking Rules: 
+      - Unbuffered Channel `ch := make(chan int)`: Send and Receive must happen at the same time like a handshake. Synchronization first, data second. If you send, but no receiver then its blocked (pending state), vice versa. Ex:
+      ```
+      go func() {
+        ch <- 10
+      }()
+      fmt.Println(<-ch) // main goroutine listening from the subroutine which pushed data to some channel
+      ```
+      - Buffered Channel `ch := make(chan int, 2)`: Buffered channels decouple timing, but still synchronize.
+      ```
+      As seen above we initialized a channel of size 2. 
+      ch <- 1 // ok
+      ch <- 2 // ok
+      ch <- 3 // blocks (buffer full)
 
-basic mutex:
-var (
-    counter int
+      Other ex: Multiple Producers, Single Consumer
+      ch := make(chan int)
+      go func() { ch <- 1 }()
+      go func() { ch <- 2 }()
+      go func() { ch <- 3 }()
+      for i := 0; i < 3; i++ {
+          fmt.Println(<-ch)
+      }
+      All sends are received. Order is non-deterministic. If you want order to be deterministic, then of course a single sender must send data in guaranteed order. 
+      ```
+    - Blocked vs Deadlocked:
+      - A goroutine is blocked when it is waiting for something. A program is deadlocked when: All goroutines are blocked, and no goroutine can ever make progress
+      - In Go, the runtime's deadlock detector is only triggered when every single goroutine is blocked. As long as there is at least one "active" or "runnable" goroutine in the program's ecosystem, it will not panic, even if other goroutines are permanently blocked. 
+      - Scenario 1: One sender, no receiver in main. If your main function (which is its own goroutine) tries to send to an unbuffered channel without a concurrent receiver, the program will panic immediately. Why? The runtime sees that the only goroutine in existence (the main one) is stuck. There is no other goroutine that could ever perform a receive to unblock it. Error: `fatal error: all goroutines are asleep - deadlock!`. 
+      - Scenario 2: Two goroutines, one blocked, one "healthy" If you have one goroutine permanently blocked on a channel but another goroutine is still running (e.g., performing a long calculation or sleeping), the program will not panic. The "Healthy" Ecosystem: The runtime sees that progress is still being made elsewhere. It assumes the blocked goroutine might eventually be unblocked by the active ones.  
+        - Goroutine Leak: This is considered a goroutine leak. The blocked goroutine will stay in memory forever, consuming resources until the entire program terminates naturally.
+  
+    - Solving a problem using Mutex + Waitgroups vs Channels
+    ```
+    Eg 1: 
+    -- Mutex+Waitgroup:
+    var (
     mu      sync.Mutex
-)
+    wg      sync.WaitGroup
+    results []int
+    )
+    func worker(n int) {
+      defer wg.Done()
+      mu.Lock()
+      results = append(results, n*n)
+      mu.Unlock()
+    }
+    func main() {
+      for i := 1; i <= 5; i++ {
+          wg.Add(1)
+          go worker(i)
+      }
+      wg.Wait()
+    }
+    -- Channels: 
+    jobs := make(chan int)
+    results := make(chan int)
+    go func() {
+      for i := 1; i <= 5; i++ {
+          jobs <- i
+      }
+      close(jobs)
+    }()
+    go func() {
+      for job := range jobs {
+          results <- job * job
+      }
+      close(results)
+    }()
+    for res := range results {
+      fmt.Println(res)
+    }
 
-func increment() {
-    mu.Lock()
-    counter++
-    mu.Unlock()
-}
+    > Also imagine, if we had a case for backpressure, creating that only using Mutex would be difficult. 
 
-sync.Mutex
+    Differences: 
+    | Feature             | Mutex | WaitGroup | Channel |
+    | ------------------- | ----- | --------- | ------- |
+    | Protect memory      | ✅     | ❌        | ❌      |
+    | Wait for completion | ❌     | ✅        | ✅      |
+    | Transfer data       | ❌     | ❌        | ✅      |
+    | Enforce order       | ❌     | ❌        | ✅      |
+    | Backpressure        | ❌     | ❌        | ✅      |
+    | Lifecycle signaling | ❌     | ❌        | ✅      |
 
-Exclusive lock
+    Eg 2:
+    -- Mutex + Waitgroup 
+    Consider earlier example related to APIs, pseudocode: 
+    func main() {
+      endpoints := []string{
+          "https://google.com",
+          "https://github.com",
+          "https://golang.org",
+      }
+      wg.Add(len(endpoints))...}...
+      // If we reimagine it with channels (below)
+    -- Channel  
+    import (
+    "fmt"
+    "net/http"
+    )
+    func getStatusCode(endpoint string, ch chan<- string) {
+      res, err := http.Get(endpoint)
+      if err != nil {
+          fmt.Println("OOPS in endpoint")
+          return
+      }
+      defer res.Body.Close()
+      fmt.Printf("%d status code for %s\n", res.StatusCode, endpoint)
+      ch <- endpoint // send result
+    }
+    func main() {
+      endpoints := []string{
+          "https://google.com",
+          "https://github.com",
+          "https://golang.org",
+      }
+      ch := make(chan string)
+      for _, ep := range endpoints {
+          go getStatusCode(ep, ch)
+      }
+      var signals []string
+      for i := 0; i < len(endpoints); i++ {
+          signals = append(signals, <-ch)
+      }
+      fmt.Println("Signals:", signals)
+    }
+    What did it replace?: // Receiving N values is equivalent to waiting for N goroutines.
+    | Old          | New                                   |
+    | ------------ | ------------------------------------- |
+    | `WaitGroup`  | Receive loop (`len(endpoints)` times) |
+    | `Mutex`      | Single owner of data                  |
+    | Shared slice | Message passing                       |
+    | `wg.Done()`  | `ch <- value`                         |
+    | `wg.Wait()`  | `<-ch` loop                           |
+    ```
+    - When to Use Channels: 
+      - Goroutines need to communicate
+      - Execution order matters
+      - You want backpressure
+      - You want pipeline or worker pool
+      - You want clean shutdown signaling 
+  - Select: It allows a goroutine to wait on multiple channel operations simultaneously, executing whichever becomes ready first, with optional non-blocking behavior via default.
+    - If no case is ready and no default exists, select blocks.
+    - Even if multiple cases are ready, Go executes only one.
+    - If multiple cases are ready: Go picks one at random, this prevents starvation.
+    - default case prevents blocking
+  ```
+  Ex1: 
+  select {
+  case msg := <-ch1: // Receive case is ready when ch1 has a value already available/ ch1 is closed
+      fmt.Println(msg)
+  case ch2 <- 10: // Send case is ready when ch2 has buffer space /there is a receiver already waiting
+      fmt.Println("sent")
+  default: // default is ready when no other case is ready
+      fmt.Println("nothing ready")
+  }
 
-Simple and fast
-
-Most common
-
-sync.RWMutex
-
-Multiple readers allowed
-
-Only one writer allowed
-Use only when:
-
-Reads >> Writes
-
-
-
+  Ex2: Fan-in (Multiple Inputs → One Output)
+  select {
+  case v := <-worker1:
+      fmt.Println("worker1:", v)
+  case v := <-worker2:
+      fmt.Println("worker2:", v)
+  }
+  ```
 
 
 

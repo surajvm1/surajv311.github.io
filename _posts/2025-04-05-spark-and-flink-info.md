@@ -875,7 +875,7 @@ SingleOutputStreamOperator<ProcessedEvent> joinedStream = eventAMappedStream.key
               return results.process(
                       new ProcessFunction<>() {
                           /*
-                              The ProcessFunction is a low-level function that provides fine-grained control over the processing of elements in Flink. We are processing the output of the async function call to update user credit limit. If the result is successful, we collect the ProcessingResult. If the result is a failure, we output the GenericException to the side output stream.
+                              The ProcessFunction is a low-level function that provides fine-grained control over the processing of elements in Flink. We are processing the output of the async function call to update user. If the result is successful, we collect the ProcessingResult. If the result is a failure, we output the GenericException to the side output stream.
                            */
                           private static final long serialVersionUID = -8056509330481115777L;
                           /*

@@ -372,8 +372,17 @@ Go - Memory model + Error handling + Concurrency
     - Heap: Slower than stack, Manually (C) or GC-managed (Go/Java/Python), Used when data must live longer
   - Go decides stack vs heap at compile time using escape analysis - you don't do it, whereas Java relies on runtime JIT optimizations and Python allocates everything on the heap by design.
   - What Go GC does:
-    - Find live objects, Free unreachable objects, Run concurrently with your program. This is called Concurrent mark-and-sweep GC.
+    - Find live objects, Free unreachable objects, Run concurrently with your program. This is called Concurrent mark-and-sweep (tricolor) GC.
+      - White → not yet seen (assumed garbage)
+      - Gray → seen, but children not scanned
+      - Black → seen and fully scanned. A black object must never point to a white object for invariant GC. 
     - Properties: Mostly concurrent, Small pause times, Optimized for server workloads
+    - Go’s GC runs at the same time as your program. 
+    - Write barrier: When your program changes a pointer while GC is running, Go must inform the GC, called WB, handled by Go compiler itself. Problem without write barrier: GC thinks an object is unreachable -> Your code suddenly points to it -> GC frees it anyway → Crash. Write barrier prevents this. GC must be told about new pointers created while it is running, because the GC is making decisions based on a partial, moving snapshot of the heap.
+    - sync.Pool is a temporary object recycling bin. Instead of: Allocate → use → GC frees. You do: Allocate once → reuse many times. Helps with heap allocations, fewer objects for GC to scan, shorter GC cycles, etc. Note: sync.Pool should NOT be used everywhere, its specific tool meant for temporary objects that reduce GC pressure, not a general cache or reuse mechanism.
+    - unsafe keyword: It lets you break Go’s rules like: Type safety, Pointer safety, GC visibility guarantees. You gain: Speed, Control, Zero-copy tricks, etc. Risk: Crashes, Memory corruption, GC bugs. 
+
+
   - In Go, how fast you allocate matters more than how much memory you use. 
   - new(T) vs make(T)
     - In summary:
@@ -964,6 +973,188 @@ Go - Memory model + Error handling + Concurrency
       fmt.Println("worker2:", v)
   }
   ```
+  - context.Context: It is a signal carrier carrying cancellation/deadline/request-scoped signals. Imagine: A request comes in and you start 5 goroutines to process it, but the user disconnects or request times out; Now how to stop all those goroutines? We can't kill goroutines or force stop functions, hence Go gives you cooperative cancellation. Syntax: `ctx := context.Background()`. Note: 
+    - Any function that blocks or loops must listen to ctx.Done(). 
+    - Cancellation propagates downward, never upward. parent → child → grandchild. If grandchild cancels(), parent is unaffected. This prevents goroutine leaks/zombie process, etc. 
+  ```
+  Ex 1:
+  func worker(ctx context.Context) {
+    for {
+      select {
+      case <-ctx.Done():
+        fmt.Println("worker stopped:", ctx.Err())
+        return
+      default:
+        fmt.Println("working...")
+        time.Sleep(500 * time.Millisecond)
+      }
+    }
+  }
+  func main() {
+    ctx, cancel := context.WithCancel(context.Background())
+    go worker(ctx)
+    time.Sleep(2 * time.Second)
+    cancel() // broadcast stop signal
+    time.Sleep(1 * time.Second)
+    fmt.Println("main exits")
+  }
+  What it does: 
+    context.WithCancel creates: ctx, a hidden done channel
+    Worker runs and selects on ctx.Done()
+    cancel() is called
+    ctx.Done() closes. Note: This blocks forever until someone cancels, then it unblocks immediately for ALL goroutines sharing the context, hence context scales.
+    <-ctx.Done() unblocks instantly
+    Worker exits cleanly
+    No leak. Clean shutdown.
+
+  Ex 2: 
+  func fetchData(ctx context.Context) error {
+	select {
+    case <-time.After(3 * time.Second):
+      fmt.Println("data fetched")
+      return nil
+    case <-ctx.Done():
+      return ctx.Err()
+    }
+  }
+  func main() {
+    ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+    defer cancel()
+    err := fetchData(ctx)
+    fmt.Println("result:", err)
+  }
+  What it does: 
+    main() — context creation: context.Background(), its root context (never cancels on its own). context.WithTimeout(...) creates: a child context, a timer, a Done channel. After 1 second, Go automatically calls cancel() internally.
+    main and fetchData share the same context.
+    Inside fetchData: time.After(3s) returns a channel that receives a value after 3 seconds. Until then → blocked. This represents slow work (API call, DB query, etc.)
+    ctx.Done() is also a channel. It closes when the context is cancelled. Closing a channel unblocks all receivers immediately. 
+    Its like: Try to finish work in 3s, but if the caller gives up in 1s — stop immediately.
+
+  Ex 3: 
+  Fan-Out (One → Many): Distribute work across multiple goroutines
+    for i := 0; i < 4; i++ {
+        go worker(jobs)
+    }
+  Fan-In (Many → One): Merge multiple result channels
+    select {
+    case r := <-c1:
+    case r := <-c2:
+    }
+  ```
+
+testing packages 
+func TestAdd(t *testing.T) {
+    tests := []struct {
+        name string
+        a, b int
+        want int
+    }{
+        {"both positive", 2, 3, 5},
+        {"with zero", 0, 5, 5},
+        {"negative", -1, 1, 0},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            if got := Add(tt.a, tt.b); got != tt.want {
+                t.Fatalf("got %d, want %d", got, tt.want)
+            }
+        })
+    }
+}
+
+
+benchmarks
+func BenchmarkAdd(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        Add(2, 3)
+    }
+}
+go test -bench=.
+
+Fuzzing (Go 1.18+)
+
+Fuzzing finds edge cases you didn’t think of.
+func FuzzParseInt(f *testing.F) {
+    f.Add("123")
+    f.Add("-1")
+
+    f.Fuzz(func(t *testing.T, input string) {
+        _, _ = strconv.Atoi(input)
+    })
+}
+go test -fuzz=.
+
+Race Detector
+
+Detects data races at runtime.
+var counter int
+
+go func() { counter++ }()
+go func() { counter++ }()
+
+go test -race
+go run -race main.go
+
+pprof (Performance Profiling)
+import _ "net/http/pprof"
+
+go http.ListenAndServe(":6060", nil)
+
+go tool pprof http://localhost:6060/debug/pprof/profile
+
+
+Tracing
+
+Tracing shows execution flow over time.
+trace.Start(os.Stdout)
+defer trace.Stop()
+go test -trace trace.out
+go tool trace trace.out
+
+For logging 
+import "log" or slog
+
+runtime metrics:
+import "runtime/metrics"or trace.. 
+
+
+net/http
+http.ListenAndServe
+
+Creates a TCP listener
+
+Accepts connections
+
+For each connection: 
+ 
+  Spawns a goroutine One goroutine per connection, not per request
+
+  Parses HTTP requests
+
+  Reuses the same connection (keep-alive)
+
+  Dispatches to handlers
+
+
+Places you MUST set timeouts
+Server side
+http.Server{
+    ReadTimeout:       5 * time.Second,
+    ReadHeaderTimeout: 2 * time.Second,
+    WriteTimeout:      10 * time.Second,
+    IdleTimeout:       60 * time.Second,
+}
+
+Client side
+client := &http.Client{
+    Timeout: 5 * time.Second,
+}
+
+interface implementation
+error patteerns
+
+
 
 
 

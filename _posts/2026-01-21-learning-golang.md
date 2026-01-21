@@ -93,7 +93,24 @@ Nuances in Go:
   }
   If a struct has Read(), it automatically implements Reader. No need to use a keyword like implements which we do like in Java. 
   ```
-- Pointers but no pointer arithmetic. Like: `p := &x, is fine, but can't do things like: p++ // illegal`
+- Pointers but no pointer arithmetic. Like: `p := &x, is fine, but can't do things like: p++ // illegal`. Some more info on pointers:
+```
+var x int = 10
+var y *int
+y = &x
+| Expression | Meaning                | Type    | Value          |
+| ---------- | ---------------------- | ------- | -------------- |
+| x          | normal variable        | int     | 10             |
+| &x         | address of x           | *int    | memory address |
+| y          | pointer to x           | *int    | address of x   |
+| *y         | value at address y     | int     | 10             |
+| &y         | address of pointer y   | **int   | memory address |
+*int      → pointer to int
+*string   → pointer to string
+*float64  → pointer to float64
+*struct{} → pointer to struct
+*int guarantees dereferencing gives an int ~ Type safety (prevents invalid memory access)
+```
 - Arrays vs slices: Arrays are fixed, Slices in Go are dynamic sized (mostly used). 
   ```
   var a [3]int // fixed size of 3 - arr
@@ -1042,8 +1059,13 @@ Go - Memory model + Error handling + Concurrency
     }
   ```
 
-testing packages 
-func TestAdd(t *testing.T) {
+### Phase 4
+
+Miscellaneous stuff in Go
+
+- Testing: 
+  ```
+  func TestAdd(t *testing.T) {
     tests := []struct {
         name string
         a, b int
@@ -1053,7 +1075,6 @@ func TestAdd(t *testing.T) {
         {"with zero", 0, 5, 5},
         {"negative", -1, 1, 0},
     }
-
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             if got := Add(tt.a, tt.b); got != tt.want {
@@ -1061,157 +1082,85 @@ func TestAdd(t *testing.T) {
             }
         })
     }
-}
-
-
-benchmarks
-func BenchmarkAdd(b *testing.B) {
-    for i := 0; i < b.N; i++ {
-        Add(2, 3)
-    }
-}
-go test -bench=.
-
-Fuzzing (Go 1.18+)
-
-Fuzzing finds edge cases you didn’t think of.
-func FuzzParseInt(f *testing.F) {
+  }
+  ```
+- Benchmarking: 
+  ```
+  func BenchmarkAdd(b *testing.B) {
+      for i := 0; i < b.N; i++ {
+          Add(2, 3)
+      }
+  }
+  Command: go test -bench=.
+  ```
+- Fuzzing: It finds edge cases you didn’t think of.
+  ```
+  func FuzzParseInt(f *testing.F) {
     f.Add("123")
     f.Add("-1")
-
     f.Fuzz(func(t *testing.T, input string) {
         _, _ = strconv.Atoi(input)
     })
-}
-go test -fuzz=.
-
-Race Detector
-
-Detects data races at runtime.
-var counter int
-
-go func() { counter++ }()
-go func() { counter++ }()
-
-go test -race
-go run -race main.go
-
-pprof (Performance Profiling)
+  }
+  Command: go test -fuzz=.
+  ```
+- Race Detector
+  ```
+  var counter int
+  go func() { counter++ }()
+  go func() { counter++ }()
+  Commands: 
+  go test -race
+  go run -race main.go
+  ```
+- Performance Profiling using pprof
+  ```
 import _ "net/http/pprof"
-
 go http.ListenAndServe(":6060", nil)
-
 go tool pprof http://localhost:6060/debug/pprof/profile
 
-
-Tracing
-
-Tracing shows execution flow over time.
+Runtime metrics: Use import "runtime/metrics"
+```
+- Tracing: It shows execution flow over time.
+  ```
 trace.Start(os.Stdout)
 defer trace.Stop()
 go test -trace trace.out
 go tool trace trace.out
+```
+- Logging:
+```
+import "log" or "slog"
+```
 
-For logging 
-import "log" or slog
-
-runtime metrics:
-import "runtime/metrics"or trace.. 
-
-
-net/http
-http.ListenAndServe
+- HTTP Calls: 
+```
+Use net/http package. It: 
 
 Creates a TCP listener
-
 Accepts connections
-
 For each connection: 
- 
   Spawns a goroutine One goroutine per connection, not per request
-
   Parses HTTP requests
-
   Reuses the same connection (keep-alive)
-
   Dispatches to handlers
-
-
 Places you MUST set timeouts
-Server side
-http.Server{
-    ReadTimeout:       5 * time.Second,
-    ReadHeaderTimeout: 2 * time.Second,
-    WriteTimeout:      10 * time.Second,
-    IdleTimeout:       60 * time.Second,
-}
-
-Client side
-client := &http.Client{
-    Timeout: 5 * time.Second,
-}
-
-interface implementation
-error patteerns
-
-
-
-
+  Server side
+  http.Server{
+      ReadTimeout:       5 * time.Second,
+      ReadHeaderTimeout: 2 * time.Second,
+      WriteTimeout:      10 * time.Second,
+      IdleTimeout:       60 * time.Second,
+  }
+  Client side
+  client := &http.Client{
+      Timeout: 5 * time.Second,
+  }
+```
+- Similarly other things like interface implementation patterns, Error design patterns, Time related libraries, etc. 
 
 
 ------------------------------------------------
-time in golang
-error handling 
-Channel + close(), Worker pool with fixed workers, Context cancellation (discussed later). 
-
 
 
   
-
-
-
-
-
-
-
---------------------------------------------------------------
-------- to cover separately --------
-var x int = 10
-var y *int
-y = &x
-| Expression | Meaning                | Type    | Value          |
-| ---------- | ---------------------- | ------- | -------------- |
-| `x`        | normal variable        | `int`   | `10`           |
-| `&x`       | address of `x`         | `*int`  | memory address |
-| `y`        | pointer to `x`         | `*int`  | address of `x` |
-| `*y`       | value at address `y`   | `int`   | `10`           |
-| `&y`       | address of pointer `y` | `**int` | memory address |
-*int      → pointer to int
-*string   → pointer to string
-*float64  → pointer to float64
-*struct{} → pointer to struct
-*int guarantees dereferencing gives an int ~ Type safety (prevents invalid memory access)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

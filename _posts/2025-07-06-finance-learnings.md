@@ -17,6 +17,7 @@ Although, work keeps me busy, I try my best to keep track of the markets and rot
 - [Investment Instruments](#investment-instruments)
 - [Technical Ratios and Metrics](#technical-ratios-and-metrics)
 - [Tax Saving Strategy](#tax-saving-strategy)
+- [Futures Options](#futures-options)
 - [Other Info](#other-info)
 
 ------------------------------
@@ -2436,6 +2437,15 @@ Earning money is great, but being able to minimize taxes legally is even better.
 - **Section 24**: ₹2 lakh (home loan interest)
 - **Section 80EEB**: ₹1.5 lakh (EV loan interest)
 - **Section 80TTA/TTB**: ₹10,000/₹50,000 (savings interest)
+
+
+**[⬆️ Back to Top](#table-of-contents)**
+
+------------------------------
+
+## Futures Options
+
+- ‘Derivatives’ is a security whose value is derived from another financial entity referred to as an ‘Underlying Asset’.
 
 
 **[⬆️ Back to Top](#table-of-contents)**

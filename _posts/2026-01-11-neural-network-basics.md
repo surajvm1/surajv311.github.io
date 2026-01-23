@@ -396,13 +396,14 @@ Five hundred images of dogs, each labeled "dog"
 Five hundred images of cats, each labeled "cat"
 Each image is our input, and the label is what we want the network to output.
 Training Process Overview: Training happens in iterations called epochs. In each epoch, we show the network every image in our training set, and we adjust the weights to make predictions better.
+
 Here is the cycle:
-First: Initialize all weights randomly (small numbers like 0.01, negative 0.03, 0.05, etc.)
-Second: For each training image, do a forward pass (like we just did) and get a prediction.
-Third: Calculate how wrong the prediction was. This is called the loss or error.
-Fourth: Use calculus to figure out how to adjust each weight to reduce the error. This is called backpropagation.
-Fifth: Update all weights slightly in the direction that reduces error.
-Sixth: Repeat for all images, then repeat the entire process for many epochs until the network gets good at predictions.
+> First: Initialize all weights randomly (small numbers like 0.01, negative 0.03, 0.05, etc.)
+> Second: For each training image, do a forward pass (like we just did) and get a prediction.
+> Third: Calculate how wrong the prediction was. This is called the loss or error.
+> Fourth: Use calculus to figure out how to adjust each weight to reduce the error. This is called backpropagation.
+> Fifth: Update all weights slightly in the direction that reduces error.
+> Sixth: Repeat for all images, then repeat the entire process for many epochs until the network gets good at predictions.
 
 Calculating Loss (Mean Squared Error)
 Let me show you how we measure how wrong our prediction was.
@@ -421,6 +422,7 @@ This is where calculus enters the picture, but I will explain it conceptually fi
 The Concept: Imagine you are standing on a hilly landscape in thick fog. You cannot see where the lowest point is, but you can feel the slope under your feet. If you always walk downhill, eventually you will reach a valley (a low point). That is gradient descent.
 The "landscape" is actually a mathematical surface where the height represents the loss (error). Each weight in your network corresponds to one dimension in this landscape. Our goal is to find the combination of weights that gives us the minimum loss.
 The Mathematics: For each weight, we calculate the derivative of the loss with respect to that weight. This derivative tells us: "if I increase this weight by a tiny amount, how much does the loss change?"
+
 Let me show you a simplified example with one weight:
 Suppose we have one weight w = 0.5
 After forward pass, loss L = 0.192
@@ -437,9 +439,7 @@ We moved the weight slightly in the direction that decreases loss!
 
 Backpropagation: The Chain Rule
 Computing these derivatives for all weights is complex because the network has many layers. Backpropagation uses the chain rule from calculus to efficiently compute all derivatives.
-The chain rule states:
-If y depends on z, and z depends on x, then:
-dy/dx = (dy/dz) × (dz/dx)
+The chain rule states: If y depends on z, and z depends on x, then: dy/dx = (dy/dz) × (dz/dx)
 For our network:
 Loss depends on output layer activations
 Output activations depend on output layer weights
@@ -447,6 +447,7 @@ Output activations also depend on hidden layer activations
 Hidden activations depend on hidden layer weights
 Hidden activations depend on input
 By applying the chain rule backwards through the network (hence "back" propagation), we can compute the derivative of the loss with respect to every single weight.
+
 Let me show you a concrete calculation for one weight in the output layer. This requires some calculus, but I will go step by step.
 Computing Gradient for Output Weight:
 Remember our output neuron for "dog":
@@ -496,15 +497,17 @@ After many epochs, the loss decreases, and the network gets better at distinguis
 
 What Is the Network Actually Learning?
 The weights encode patterns:
-First layer weights might learn to detect simple features like edges, corners, or color blobs. One neuron might activate strongly when it sees a vertical edge. Another might respond to horizontal edges.
-Second layer weights combine these simple features into more complex patterns. They might detect textures (fur), shapes (triangular ears), or patterns (stripes, spots).
-Third layer weights combine complex features into complete concepts. They learn to recognize "this combination of features means dog" versus "this combination means cat."
+> First layer weights might learn to detect simple features like edges, corners, or color blobs. One neuron might activate strongly when it sees a vertical edge. Another might respond to horizontal edges.
+> Second layer weights combine these simple features into more complex patterns. They might detect textures (fur), shapes (triangular ears), or patterns (stripes, spots).
+> Third layer weights combine complex features into complete concepts. They learn to recognize "this combination of features means dog" versus "this combination means cat."
 The network builds a hierarchy of understanding, from simple to complex, all automatically from the data!
 
 The Complete ML Lifecycle
 Now let me walk you through the entire process from start to finish, as you would do in a real project.
+
 Phase 1: Problem Definition and Data Collection
 First, clearly define what you want to predict. In our case: given an image, classify it as dog or cat. Next, collect your dataset. You might scrape images from the internet, use an existing dataset like ImageNet, or take your own photos. You need thousands of images, ideally balanced (equal numbers of dogs and cats). Each image must be labeled. This is often done manually or using crowdsourcing platforms. The quality of your labels directly affects your model's quality.
+
 Phase 2: Data Preprocessing
 Real-world data is messy. You need to clean and standardize it:
 Resize images to a consistent size (say 224×224 pixels). Neural networks expect fixed-size inputs. Normalize pixel values from the range [0, 255] to [0, 1] by dividing by 255. This helps training converge faster. Split your data into three sets:
@@ -512,6 +515,7 @@ Training set (70% of data): used to train the network
 Validation set (15% of data): used to tune hyperparameters
 Test set (15% of data): used only at the end to evaluate final performance
 Augment your data: Create variations of training images by randomly flipping, rotating, cropping, or adjusting brightness. This helps the network generalize better.
+
 Phase 3: Model Architecture Design
 Decide on your network structure. For image classification, convolutional neural networks (CNNs) work best, but the principles are the same as what we discussed.
 Choose:
@@ -519,6 +523,7 @@ Number of layers
 Number of neurons per layer
 Activation functions
 Output layer structure (softmax with two outputs for dog vs cat)
+
 Phase 4: Training
 Initialize weights randomly. Set hyperparameters like learning rate (0.001 is a common starting point), batch size (how many images to process before updating weights, often 32 or 64), and number of epochs (how many times to go through the entire dataset, often 50-200).
 Run the training loop I described earlier. Monitor two metrics:
@@ -529,23 +534,28 @@ Getting more training data
 Simplifying the model (fewer layers or neurons)
 Using regularization techniques like dropout
 Stopping training earlier
+
 Phase 5: Hyperparameter Tuning
 Use the validation set to experiment with different settings. Try different learning rates (0.01, 0.001, 0.0001). Try different architectures (more or fewer layers). Try different batch sizes.
 This phase is iterative. You train many models with different settings and pick the one that performs best on the validation set.
+
 Phase 6: Final Evaluation
 Once you are satisfied with your model's performance on the validation set, evaluate it one final time on the test set. This gives you an unbiased estimate of how well the model will perform on completely new data in the real world.
 Calculate metrics like:
 Accuracy: What percentage of images did you classify correctly?
 Precision: Of the images you labeled as "dog," what percentage were actually dogs?
 Recall: Of all the actual dog images, what percentage did you correctly identify?
+
 Phase 7: Deployment
 If the test performance is good enough for your use case, deploy the model. This might mean:
 Creating an API that accepts images and returns predictions
 Embedding the model in a mobile app
 Running the model on a web server
+
 Phase 8: Monitoring and Maintenance
 After deployment, monitor the model's performance on real-world data. Performance might degrade over time if the data distribution changes (for example, if people start uploading different types of dog breeds).
 Periodically retrain the model with new data to keep it accurate.
+
 Part 9: Key Insights and Common Pitfalls
 Neural networks are universal function approximators. Given enough neurons and layers, they can theoretically approximate any continuous function. This is why they work for such diverse tasks.
 More data usually beats better algorithms. A simple neural network trained on one million images will often outperform a sophisticated network trained on ten thousand images.

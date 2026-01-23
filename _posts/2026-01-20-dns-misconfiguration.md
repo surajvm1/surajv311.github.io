@@ -25,8 +25,8 @@ Now, my brushup behind this:
   - This information propagated to TLD servers worldwide, making Route 53 the authoritative source for all punch.trade DNS queries.
 - What DNS Records Actually Control
   - DNS operates exclusively at the hostname level. When you create a Route 53 record for xyz.punch.trade, you map that complete hostname to a destination server or load balancer. 
-  - Route 53 knows nothing about files, application code, or URL paths. There's no DNS record for xyz.punch.trade/index.html or xyz.punch.trade/assets/main.css. D
-  - NS simply answers "what server hosts this domain name?" The server itself handles all file routing and application logic.
+  - Route 53 knows nothing about files, application code, or URL paths. There's no DNS record for xyz.punch.trade/index.html or xyz.punch.trade/assets/main.css.
+  - DNS simply answers "what server hosts this domain name?" The server itself handles all file routing and application logic.
 - How Websites Load After DNS Resolution
   - Once your browser obtains the IP address from DNS, it establishes a TCP connection to the Application Load Balancer and performs an SSL/TLS handshake for secure connections. 
   - The browser sends an HTTP request, which the ALB forwards to an ECS container running your web application. That container generates and returns the HTML response.

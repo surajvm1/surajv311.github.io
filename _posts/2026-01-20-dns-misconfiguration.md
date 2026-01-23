@@ -32,7 +32,7 @@ Now, my brushup behind this:
   - The browser sends an HTTP request, which the ALB forwards to an ECS container running your web application. That container generates and returns the HTML response.
   - As the browser parses the HTML, it discovers additional resources like CSS files, JavaScript, and images. For each resource, the browser makes separate HTTP requests. When it encounters `<link rel="stylesheet" href="https://xyz.punch.trade/assets/career/main-1234.css">`, it performs DNS resolution again for xyz.punch.trade (typically served from cache) and requests that specific file path. 
   - The ALB forwards this request to an ECS container where your application or web server like Nginx uses its internal routing logic to serve the CSS file from the correct directory.
-- Why the Bug Created This Specific Symptom
+- About the bug
   - The Route 53 record for xyz.punch.trade pointed to the wrong ALB. When browsers loaded the page, they received HTML successfully, possibly from cache or because the initial connection worked. However, when browsers attempted to fetch the CSS file referenced in the HTML, DNS resolution returned the wrong destination. The CSS request either failed completely or reached a server where the file didn't exist.
   - Without CSS, HTML renders as unstyled text. All content appears on the page but without layouts, colors, fonts, or visual formatting. The site looked broken even though the actual content and structure were intact. 
   - Once Devops updated the Route 53 record to point to the correct ALB and DNS caches expired according to TTL settings, CSS requests began reaching the correct server. The stylesheet loaded successfully and the UI displayed properly.
@@ -40,6 +40,6 @@ Now, my brushup behind this:
   - DNS sits at the network layer, completely separate from your application. Route 53 points browsers to your ALB, which forwards requests to ECS containers running your application code. 
   - That application code came from GitHub through a CI/CD pipeline that builds Docker images and deploys them to ECS (update image in ECR & ECS pulls and runs container from the image). 
   - DNS has no involvement in this deployment process. Its single job is mapping hostnames to server addresses. 
-  - When that mapping breaks, resources referenced by absolute URLs fail to load even though the initial page may appear functional, creating the exact symptom you experienced where HTML loaded but CSS didn't.
+  - When that mapping breaks, resources referenced by absolute URLs fail to load even though the initial page may appear functional.
 
 ----------------------------------------

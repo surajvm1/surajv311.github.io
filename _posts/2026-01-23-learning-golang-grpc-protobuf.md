@@ -1,12 +1,12 @@
 ---
 layout: post 
-title: Learning GoLang
+title: Learning GoLang, gRPC, Protobuf
 category: technicalArticles
 ---
 
 > From my experience working at [Punch](https://www.punch.trade/). Read docs, youtube, GPT explanations. 
 
-Learning Golang!. I may take occasional detours as a part of understanding things 'properly'. 
+Learning Golang, gRPC, Protobuf. I may take occasional detours as a part of understanding things 'properly'. 
 
 ### Fundamentals
 

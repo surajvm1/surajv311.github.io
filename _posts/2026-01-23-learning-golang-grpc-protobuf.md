@@ -16,6 +16,7 @@ Nuances in Go:
     - Your CPU runs instructions in 0s and 1s. So every instruction defined via a language must eventually become machine code. The difference is WHEN and HOW that translation happens.
     - Compiled languages Flow: Source code → Compiler → Machine code executable → Run the executable. Compiler: Reads the entire program; Does static analysis; Optimizes globally. Interpreted languages Flow: Source code → Interpreter → Execute line by line. Interpreter: Reads one statement, Executes it immediately, Moves to the next. Compiled languages came first. Note that today almost all modern “interpreted” languages compile internally.
     - What did interpreted languages solve?: Early computers were painful; Compilation took minutes to hours hence debugging meant: Write code, Compile, Run, Crash, Repeat. Interpreters solved this: Immediate feedback, Interactive programming (REPL), Dynamic behavior. For example:
+    
       ```
       Eg1: — Calculator 
       In Python (Interpreted, can do interactive exploration): 
@@ -55,6 +56,7 @@ Nuances in Go:
   - It is statically typed language, i.e: The type of every variable/expression is known before the program runs. Dynamic typic means the type of variable is know during runtime of program. 
   - Go gives capability to infer the type of variable even if you don't mention the type in code, during compile time, using it's type-inference. Eg: `Usual code eg: var x int = 10. But if you don't mention 'int', it will still be able to infer the type during compile time, i.e: var x = 10`.  
 - If you don't assign a value to variable, Go assumes default values, it never leaves variables uninitialized. Eg: 
+
   ```
   | Type    | Zero value |
   | ------- | ---------- |
@@ -69,7 +71,8 @@ Nuances in Go:
 - Explicit conversions must be done if required in values. Eg: `var y float64 = float64(x)`.
 - if / for / switch need no parentheses
 - Only ONE loop keyword: for. No while, no do-while.
-- Functions can return multiple values. 
+- Functions can return multiple values.
+
   ```
   func divide(a, b int) (int, error) {
     if b == 0 {
@@ -79,6 +82,7 @@ Nuances in Go:
   }
   ```
 - Error handling is explicit. Eg: 
+
   ```
   result, err := divide(10, 2)
   if err != nil {
@@ -87,6 +91,7 @@ Nuances in Go:
   ```
 - No classes, no inheritance. Go uses: structs, interfaces, composition. 
 - Interfaces are implicit. Eg: 
+
   ```
   type Reader interface {
       Read() string
@@ -94,6 +99,7 @@ Nuances in Go:
   If a struct has Read(), it automatically implements Reader. No need to use a keyword like implements which we do like in Java. 
   ```
   - Pointers but no pointer arithmetic. Like: `p := &x, is fine, but can't do things like: p++ // illegal`. Some more info on pointers:
+    
     ```
     var x int = 10
     var y *int
@@ -117,6 +123,7 @@ Nuances in Go:
     ```
 
 - Arrays vs slices: Arrays are fixed, Slices in Go are dynamic sized (mostly used). 
+  
   ```
   var a [3]int // fixed size of 3 - arr
   var s []int // dynamic - slice
@@ -128,6 +135,7 @@ Nuances in Go:
   1. To add elements in slice, eg: s = append(s, "hello")
   ```
 - Maps must be initialized
+  
   ```
   var m map[string]int
   Doing: m["a"] = 1 // Wrong
@@ -144,6 +152,7 @@ Nuances in Go:
 
 - func init() in Go is a special function that runs automatically during a package's initialization, before any other functions in the package are called, including main(). It's used for setup and configuration tasks. 
 - No function overloading or hardcore OOPs kind of concept in Go. 
+  
   ```
   Ex: 
   Java style OOP:
@@ -177,6 +186,7 @@ Nuances in Go:
   - Memory/lifecycle: new, make, defer
   - Error/exit: panic, recover, return
 - Variable declarations:
+  
   ```
   For Single variable:
   1. var x string = "" -> Used and declared inside/outside (global variable) functions; Declares + Assigns value
@@ -224,6 +234,7 @@ Nuances in Go:
     - import: dependency management and package: namespace
       - A namespace is a named logical container that groups identifiers (functions, variables, types) so they don’t clash with others. In Go, packages are namespaces.
       - If a function/variable/struct/interface/const, etc., variable is capitalized - Means access is public, if smallcase then access is private (accessible only inside same package)
+        
         ```
         func CreateUser() User {   // public function
             return User{Name: "Suraj", Age: 10}
@@ -234,6 +245,7 @@ Nuances in Go:
         ```
 
   - Data Structures: 
+    
     ```
     The type is always on the RIGHT side, if not inferring. Eg: var x int, var s []string, var m map[string]int
 
@@ -288,6 +300,7 @@ Nuances in Go:
     ```
 
   - DataTypes:
+    
     ```
     10      // int, we do have int8, int64, uint/uint8... - unsigned int which has positive values, etc... 
     3.14    // float64
@@ -298,6 +311,7 @@ Nuances in Go:
     ```
 
 - Loops/If-Else/Switches
+  
   ```
   Normal loop:
   for i := 0; i < 5; i++ {
@@ -333,6 +347,7 @@ Nuances in Go:
   ```
 
 - Functions
+  
   ```
   Normal:
   func add(a int, b int) int {
@@ -354,6 +369,7 @@ Nuances in Go:
 
 File structure in Go: 
 Assume:
+
 ```
 hello-go/
 ├── go.mod
@@ -369,6 +385,7 @@ go.mod can be imagined as: requirements.txt + project identity + version lock.
 Keeping module name same as folder name is best practice, else when you import other packages, you'll have to do an explicit handling. 
 
 Files: 
+
 ```
 mathutils/add.go:
 package mathutils
@@ -443,6 +460,7 @@ Go - Memory model
       - When using new for a slice, the slice’s data pointer is nil, meaning no underlying array is allocated.
       - When using make, the underlying array is allocated and initialized to its zero values, making the slice ready for use.
       - There is no difference in observable behavior. But performance-wise, there is, Nil slices (created with new) will trigger automatic memory allocations and array resizing when elements are appended, potentially causing overhead due to repeated allocations and copying. Slices created with make and a predefined capacity avoid repeated allocations since the underlying array is pre-allocated.
+        
         ```
         Note:
         sMake := make([]string, 3, 5)
@@ -487,6 +505,7 @@ Go - Error handling
 
 - Error handling  
   - defer: schedules a function call to run when the surrounding function returns. It executes in LIFO order. Although, avoid using it in extreme tight loops. 
+    
     ```
     Eg 1: 
     func main() {
@@ -509,6 +528,7 @@ Go - Error handling
     1
     ``` 
     - Note: **Immediately Invoked Function Expression** (IIFE) allows you to define a function without a name and execute it at the same moment. Use func() { }() only if you need at least one: go, defer, isolated scope, closure over variables, inline one-time logic. Else direct code. 
+      
       ```
       Eg: 
       func(msg string) {
@@ -533,6 +553,7 @@ Go - Error handling
     - Deferred functions or other goroutines still run. 
     - Program crashes unless the panic is 'recovered'. recover() stops stack unwinding and only works inside a deferred function.
     - Note that if the caller can handle it → return an error. If the program is broken → panic.
+      
       ```
       Ex 1: 
       func main() {
@@ -645,6 +666,7 @@ Go - Error handling
       - API returned 500
       - Database connection lost
       - JSON malformed from external source
+        
         ```
         data, err := os.ReadFile("config.json")
         if err != nil {
@@ -658,6 +680,7 @@ Go - Error handling
       - Map accessed concurrently without lock
       - Invariant violated
       - Impossible switch case
+        
         ```
         if user == nil {
           panic("user must never be nil here")
@@ -685,6 +708,7 @@ Go - Concurrency
 - Concurrency
   - Go runs goroutines using its own scheduler on top of the OS scheduler. The OS schedules threads on CPU cores. The Go runtime schedules goroutines onto those threads using the G-M-P model, minimizing OS context switches and making concurrency cheap.
   - Python/Java use OS level threads which is heavy. Goroutine is NOT an OS thread. Under the hood (we would learn more):
+    
     ```
     Millions of Goroutines
           ↓
@@ -702,6 +726,7 @@ Go - Concurrency
     - M – Machine (OS Thread): Real OS thread (pthread, etc.); Generally ~1MB; Scheduled by OS scheduler; Executes Go code only when it owns a P
     - P – Processor (Logical Processor): Go runtime abstraction; Holds: **Run queue of goroutines**, Scheduler context; Count = GOMAXPROCS
     - A goroutine runs only when an M holds a P.
+      
       ```
       CPU Core
         ↓
@@ -721,6 +746,7 @@ Go - Concurrency
     - OS thread switch: Save registers, Kernel mode, Expensive. 100k threads -> impossible
     - Goroutine switch: User-space, Save small state, Very cheap. 100k goroutines -> fine
   - main() function is initial/default goroutine. 
+    
     ```
     Sample Go routine: 
     func main() {
@@ -738,6 +764,7 @@ Go - Concurrency
       - Done() → call once per goroutine
       - Wait() → blocks until counter reaches zero
     - Important: WaitGroup does NOT protect data. It only synchronizes completion
+    
     ```
     Ex: 
     package main
@@ -768,6 +795,7 @@ Go - Concurrency
       - Waitgroups < Code Goroutines: You get `panic: sync: negative WaitGroup counter`. 
     - What if number of waitgroups to add is unknown/unbounded?: Then WaitGroup may be the wrong tool. Better alternatives: Channel + close(), Worker pool with fixed workers, Context cancellation (discussed later). 
   - Mutex: A Mutual Exclusion lock ensures only one goroutine accesses critical data at a time. Helps in race conditions (concurrent access of data by multiple goroutines). In Java ecosystem, we use `volatile`/`synchronized` keywords. 
+    
     ```
     Race condition: 
       func increment() {
@@ -782,6 +810,7 @@ Go - Concurrency
     ```
 
     - Basic Mutex: Lock before accessing shared data. Unlock immediately after. Using defer to unlock is a good practice. 
+      
       ```
       var (
           counter int
@@ -797,6 +826,7 @@ Go - Concurrency
     - Types of Mutexes: 
       - sync.Mutex: Exclusive lock; Only one goroutine can access the critical section at a time; Simple, fast, commonly used. Limitation: Readers and writers are treated the same; Even read-only operations block each other
       - sync.RWMutex: Read-Write lock; Multiple readers allowed concurrently; Only one writer allowed; Writers block readers and other writers. If your program has many reads, less writes, use this. 
+        
         ```
         Eg: 
         package main
@@ -857,6 +887,7 @@ Go - Concurrency
         - Receive: `value := <-ch`. Note only `<-` symbol exists. 
         - Close: `close(ch)`. Only the sender (producer) should close the channel. (No more values will be sent, Receivers can still drain existing values)
           - If you read from a closed channel you get: 
+            
             ```
             v, ok := <-ch 
             ok == false → channel is closed
@@ -865,6 +896,7 @@ Go - Concurrency
 
     - Blocking Rules: 
       - Unbuffered Channel `ch := make(chan int)`: Send and Receive must happen at the same time like a handshake. Synchronization first, data second. If you send, but no receiver then its blocked (pending state), vice versa. Ex:
+        
         ```
         go func() {
           ch <- 10
@@ -873,6 +905,7 @@ Go - Concurrency
         ```
 
       - Buffered Channel `ch := make(chan int, 2)`: Buffered channels decouple timing, but still synchronize.
+        
         ```
         As seen above we initialized a channel of size 2. 
         ch <- 1 // ok
@@ -898,6 +931,7 @@ Go - Concurrency
         - Goroutine Leak: This is considered a goroutine leak. The blocked goroutine will stay in memory forever, consuming resources until the entire program terminates naturally.
   
     - Solving a problem using Mutex + Waitgroups vs Channels
+      
       ```
       Eg 1: 
       -- Mutex+Waitgroup:
@@ -1013,6 +1047,7 @@ Go - Concurrency
     - Even if multiple cases are ready, Go executes only one.
     - If multiple cases are ready: Go picks one at random, this prevents starvation.
     - default case prevents blocking
+    
     ```
     Ex1: 
     select {
@@ -1036,6 +1071,7 @@ Go - Concurrency
   - context.Context: It is a signal carrier carrying cancellation/deadline/request-scoped signals. Imagine: A request comes in and you start 5 goroutines to process it, but the user disconnects or request times out; Now how to stop all those goroutines? We can't kill goroutines or force stop functions, hence Go gives you cooperative cancellation. Syntax: `ctx := context.Background()`. Note: 
     - Any function that blocks or loops must listen to ctx.Done(). 
     - Cancellation propagates downward, never upward. parent → child → grandchild. If grandchild cancels(), parent is unaffected. This prevents goroutine leaks/zombie process, etc. 
+    
     ```
     Ex 1:
     func worker(ctx context.Context) {
@@ -1107,6 +1143,7 @@ Go - Concurrency
 Miscellaneous stuff in Go
 
 - Testing: 
+  
   ```
   func TestAdd(t *testing.T) {
     tests := []struct {
@@ -1129,6 +1166,7 @@ Miscellaneous stuff in Go
   ```
 
 - Benchmarking: 
+  
   ```
   func BenchmarkAdd(b *testing.B) {
       for i := 0; i < b.N; i++ {
@@ -1139,6 +1177,7 @@ Miscellaneous stuff in Go
   ```
 
 - Fuzzing: It finds edge cases you didn’t think of.
+  
   ```
   func FuzzParseInt(f *testing.F) {
     f.Add("123")
@@ -1151,6 +1190,7 @@ Miscellaneous stuff in Go
   ```
 
 - Race Detector
+  
   ```
   var counter int
   go func() { counter++ }()
@@ -1161,6 +1201,7 @@ Miscellaneous stuff in Go
   ```
 
 - Performance Profiling using pprof
+  
   ```
   import _ "net/http/pprof"
   go http.ListenAndServe(":6060", nil)
@@ -1169,6 +1210,7 @@ Miscellaneous stuff in Go
   Runtime metrics: Use import "runtime/metrics"
   ```
 - Tracing: It shows execution flow over time.
+  
   ```
   trace.Start(os.Stdout)
   defer trace.Stop()
@@ -1176,11 +1218,13 @@ Miscellaneous stuff in Go
   go tool trace trace.out
   ```
 - Logging:
+  
   ```
   import "log" or "slog"
   ```
 
 - HTTP Calls: 
+  
   ```
   Use net/http package. It: 
 
@@ -1216,6 +1260,7 @@ Extras - gRPC, Protobuf
     - Services (RPC methods)
     - Request / Response message schemas
     - Field numbers (critical for compatibility)
+      
       ```
       Example:
       syntax = "proto3";
@@ -1281,6 +1326,7 @@ Extras - gRPC, Protobuf
       - Generated (Automatic): Client stubs (typed methods), Server interfaces, Serialization / deserialization logic, Network plumbing
         - You get two Go files: `user.pb.go` → messages (structs, serialization), `user_grpc.pb.go` → client & server interfaces. 
         - Consider the same previously shared proto file example (previous points) and assume you ran the command; Then:
+          
           ```
           Generated code in user.pb.go
 

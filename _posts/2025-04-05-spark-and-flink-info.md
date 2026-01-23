@@ -6,7 +6,7 @@ category: technicalArticles
 
 > From my experience working at [Simpl](https://simpl.com/). 
 
-In this article, I write my some details and understandings around Spark and Flink. 
+In this article, I have jotted down my understanding around Spark and Flink. 
 
 #### Spark 
 
@@ -117,6 +117,8 @@ Hardware Level Configuration:
 - More details:
   - Concise info: [Ref 1](https://github.com/Surajv311/mDumpSWE/tree/main/Spark)
   - Detailed info: [Ref 2](https://github.com/Surajv311/mDumpSWE/blob/main/Books_ResearchPapers_read/README_book1.md)
+
+-----------------------------------------------------------
 
 #### Flink
 
@@ -875,7 +877,7 @@ SingleOutputStreamOperator<ProcessedEvent> joinedStream = eventAMappedStream.key
               return results.process(
                       new ProcessFunction<>() {
                           /*
-                              The ProcessFunction is a low-level function that provides fine-grained control over the processing of elements in Flink. We are processing the output of the async function call to update user credit limit. If the result is successful, we collect the ProcessingResult. If the result is a failure, we output the GenericException to the side output stream.
+                              The ProcessFunction is a low-level function that provides fine-grained control over the processing of elements in Flink. We are processing the output of the async function call to update user. If the result is successful, we collect the ProcessingResult. If the result is a failure, we output the GenericException to the side output stream.
                            */
                           private static final long serialVersionUID = -8056509330481115777L;
                           /*
@@ -941,5 +943,12 @@ SingleOutputStreamOperator<ProcessedEvent> joinedStream = eventAMappedStream.key
     // If we are dealing with IST, convert the IST time to epoch time in milliseconds and use that value.
     ```
 
---------------------------------------------
+-----------------------------------------------------------
+
+For interview preparation and other insights around Spark/Flink, you can follow below PDFs for brushup: 
+- [Spark]({{ site.baseurl }}/public/docs/FlinkTechnicalPrep.pdf)
+- [Flink]({{ site.baseurl }}/public/docs/SparkTechnicalPrep.pdf)
+
+
+-----------------------------------------------------------
 

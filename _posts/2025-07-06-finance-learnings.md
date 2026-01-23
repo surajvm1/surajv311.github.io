@@ -4,7 +4,7 @@ title: Finance & Stock Market learnings
 category: nonTechnicalArticles
 ---
 
-> Read educational articles online from Zerodha Varsity, Upstox, Groww, Smallcase followed folks on Youtube/Twitter/WebArticles, etc., and wrote below notes.
+> Read educational articles online from Zerodha Varsity, Upstox, Groww, Smallcase followed folks on Youtube/Twitter/WebArticles, asked doubts to GPT etc., and wrote below notes.
 
 In this article I will write about my learnings around indian stock market, fundamental & technical analysis of stocks, etc., which I have been doing for some months. 
 Although, work keeps me busy, I try my best to keep track of the markets and rotate my finances whenever necessary.
@@ -17,6 +17,7 @@ Although, work keeps me busy, I try my best to keep track of the markets and rot
 - [Investment Instruments](#investment-instruments)
 - [Technical Ratios and Metrics](#technical-ratios-and-metrics)
 - [Tax Saving Strategy](#tax-saving-strategy)
+- [Futures Options](#futures-options)
 - [Other Info](#other-info)
 
 ------------------------------
@@ -2436,6 +2437,174 @@ Earning money is great, but being able to minimize taxes legally is even better.
 - **Section 24**: ₹2 lakh (home loan interest)
 - **Section 80EEB**: ₹1.5 lakh (EV loan interest)
 - **Section 80TTA/TTB**: ₹10,000/₹50,000 (savings interest)
+
+
+**[⬆️ Back to Top](#table-of-contents)**
+
+------------------------------
+
+## Futures Options
+
+(Touching things at a high level)
+
+### Part 1
+
+- Futures and Options (F&O) are the two main types of financial derivatives. A derivative is a contract that derives its value from an underlying asset, such as a stock, a commodity (like gold), or an index (like the S&P 500).
+- A Futures Contract is a binding agreement to buy or sell an asset at a predetermined price on a specific future date. 
+- The Obligation: Both the buyer and the seller are obligated to fulfill the contract, regardless of the market price at the time of expiry.
+- The Cost: You don’t pay the full price upfront. Instead, you deposit a margin (a fraction of the total value) with the broker.
+- Detailed Example: Trading Gold Futures:
+```
+Imagine Gold is currently trading at $2,000/oz. You believe the price will rise by next month.
+The Trade: You enter a futures contract to buy 100 oz of gold at $2,000 in 30 days.
+Scenario A (Price Rises): Gold goes to $2,200. You are still allowed to buy it at the contract price of $2,000.
+Your Profit: ($2,200 - $2,000) × 100 oz = $20,000 profit.
+Scenario B (Price Falls): Gold drops to $1,800. You are legally forced to buy it at $2,000, even though it's only worth $1,800 in the market.
+Your Loss: ($2,000 - $1,800) × 100 oz = $20,000 loss.
+```
+
+- Another way to explain: A Futures Contract is an obligation to buy/sell an asset at a specific price on a specific date.
+  - Lot Size: You cannot trade 1 share. You trade a "lot". Example: Reliance Lot size = 250.
+  - Buying 1 Futures contract = Exposure to 250 shares.
+  - Expiry: Contracts in India expire on the last Thursday of the month (if Thursday is a holiday, then Wednesday). Cycles: Near Month (Current), Next Month, Far Month.
+  - Margin & Leverage: You don't pay the full value. You pay a "performance bond" called Margin. Example: Contract Value = ₹5 Lakhs. Margin required ≈ ₹1 Lakh (approx 20%). Leverage = 5x.
+  - Mark-to-Market (M2M): Profits and losses are settled daily in cash. Scenario: You bought Nifty Futures at 20,000. It closes at 20,100. The exchange credits ₹100 x Lot Size to your account that evening. If it falls to 19,900, they debit it.
+  - Spot Price vs Futures Price:
+    - Spot: Current market price of the share (Cash market).
+    - Future: Usually trades at a premium to Spot due to "Cost of Carry" (Interest cost).
+    - Formula: $Future Price = Spot Price + Cost of Carry
+    - Convergence: On expiry day, Future Price = Spot Price.
+  - Cash Carry Arbitrage: Buying the stock in the Cash market and selling the Future (if Future is overpriced) to lock in a risk-free profit equal to the interest rate.
+
+- What are Options?: An Options Contract gives you the right, but not the obligation, to buy or sell an asset at a set price.
+- The Choice: If the deal is bad for you, you can simply let the contract expire and walk away.
+- The Cost: To get this "right," you must pay a non-refundable fee called a Premium.
+```
+A. Call Options (The right to BUY)
+You buy a Call if you think the price will go up.
+Detailed Example: Suppose Stock X is at $100. You buy a Call Option with a "Strike Price" of $100 for a $5 premium.
+Total Cost: $5.
+Scenario A (Price hits $130): You exercise your right to buy at $100 and sell it immediately for $130.
+Profit: $30 (gain) - $5 (premium) = $25 Net Profit.
+Scenario B (Price drops to $70): You choose not to buy the stock for $100 because it's cheaper in the market. You let the option expire.
+Loss: Only the $5 premium.
+
+B. Put Options (The right to SELL)
+You buy a Put if you think the price will go down.
+Detailed Example: You own Stock Y at $100. You fear a crash, so you buy a Put Option with a strike of $100 for a $5 premium.
+Scenario A (Price drops to $60): You exercise your right to sell at $100.
+Net Result: Even though the market price is $60, you sold at $100. Your "profit" on the option ($40 - $5 premium = $35) offsets the loss on your actual stock.
+Scenario B (Price rises to $150): You don't want to sell at $100! You let the option expire and keep your stock.
+Loss: Only the $5 premium.
+```
+
+- Another way to explain: An Option gives the buyer the right (but not obligation) to buy/sell. The seller (writer) has the obligation.
+- The Basics
+  - Call Option (CE): Buy if you think the market will go UP.
+  - Put Option (PE): Buy if you think the market will go DOWN.
+  - Strike Price: The price at which you agree to buy/sell.
+  - Premium: The price you pay to buy the option contract.
+- Moneyness
+  - ITM (In The Money): Has intrinsic value (e.g., Call Strike 100, Spot is 110).
+  - ATM (At The Money): Strike ≈ Spot.
+  - OTM (Out of The Money): No intrinsic value, purely time value (e.g., Call Strike 120, Spot is 110).
+  - The Option Greeks 
+  - Delta: How much option price changes for a 1 point move in the underlying.ATM Delta is usually 0.5. If Nifty moves up 100 points, ATM Call increases by 50.
+  - Gamma: Rate of change of Delta. Explains how fast Delta changes. High Gamma = Explosive moves (common on Expiry day).
+  - Theta: Time Decay. How much value the option loses every day as it nears expiry. This is the "enemy" of the buyer and "friend" of the seller.
+  - Vega: Sensitivity to Volatility. If Volatility (IV) goes up, option premiums become expensive.4.  
+- Volatility Terms
+  - India VIX: The "Fear Index."High VIX (>20): Expect wild swings; Option premiums are expensive (good for selling spreads).Low VIX (<12): Market is complacent; Premiums are cheap (good for buying).
+  - IV (Implied Volatility): The market's expectation of future volatility for that specific stock.
+
+| Feature | Futures | Options |
+| :--- | :--- | :--- |
+| **Obligation** | **Mandatory** for both parties to fulfill the contract. | **Optional** for the buyer; **Mandatory** for the seller if the buyer exercises. |
+| **Risk** | **Unlimited** potential for both profit and loss. | **Limited** to the Premium for the buyer; **Unlimited** for the seller. |
+| **Upfront Cost** | **Margin** (A refundable deposit, though subject to daily mark-to-market). | **Premium** (A non-refundable fee paid by the buyer to the seller). |
+| **Profit Potential** | **Unlimited** as the price moves in your favor. | **Unlimited** for Call buyers; **High** for Put buyers. |
+
+- Why use one over the other?: Use Futures if you are very confident in the direction of the market and want to avoid paying a premium. It is a high-stakes, high-reward tool. Use Options if you want to limit your "downside" (loss) while still participating in the "upside" (gain). It acts like an insurance policy for your portfolio.
+- OTC vs. Exchange Traded:
+  - OTC (Over-the-Counter): Private agreements between two parties (e.g., You and a friend agree to exchange dollars next month). High counterparty risk (the other guy might run away). Forwards are OTC contracts.
+  - Exchange Traded: Standardized contracts traded on a regulated exchange (NSE/BSE). The exchange guarantees the trade, removing counterparty risk. Futures and Options are exchange-traded
+
+- Margin Types
+  - SPAN Margin: The base margin calculated based on risk/volatility (covers 99% of worst-case moves).
+  - Exposure Margin: Additional margin blocked by brokers (safety net).
+  - Total Margin: SPAN + Exposure.
+  - Margin Call: If your account balance falls below the required margin, the broker demands more money. If not paid, they square off your position.
+- Order Types like: MIS (Margin Intraday Square-off): Intraday only, Lower margin, but auto-squared off at 3:15 PM; Cover order (discussed in past), etc... 
+  
+- Shorting
+  - Spot Market: You can short (sell first, buy later) only for Intraday. You must buy them back before 3:20 PM. You cannot carry it overnight.
+  - F&O Market: You can short Futures or Buy Puts and carry them overnight/days/weeks. This is the only way to hold a bearish position for days.
+
+- Data Analysis & Indicators
+  - Open Interest (OI): Total number of open contracts in the market.
+    - Price UP + OI UP: Long Build-up (Bullish).
+    - Price DOWN + OI UP: Short Build-up (Bearish).
+    - Price DOWN + OI DOWN: Long Unwinding (Weak Bullish trend ending).
+    - Price UP + OI DOWN: Short Covering (Bears are exiting, explosive upmove possible).
+  - PCR (Put Call Ratio): Total Put OI / Total Call OI.
+    - PCR > 1.5: Oversold (Market might bounce).
+    - PCR < 0.5: Overbought (Market might fall).
+  - Max Pain: The strike price where the option writers (sellers) will lose the least amount of money. The market often "gravitates" to this price on expiry.
+  - Option Chain: A table showing OI, Volume, IV, and Premiums for all strikes. Used to identify Support (High Put OI) and Resistance (High Call OI).
+
+- Strategies
+  - Bullish Strategies
+    - Long Call: Buy CE. (High risk, defined loss).
+    - Bull Call Spread: Buy ATM Call + Sell OTM Call. (Reduces cost, caps profit, hedges volatility).
+    - Call Ratio Back Spread: Sell 1 ITM Call + Buy 2 OTM Calls. (For unlimited upside with limited downside).
+  - Bearish Strategies
+    - Long Put: Buy PE.
+    - Bear Put Spread: Buy ATM Put + Sell OTM Put.
+    - Bear Call Ladder: Sell ATM Call + Buy OTM Call + Buy another higher OTM Call.
+  - Neutral / Range Bound Strategies (Theta Eaters)
+    - Short Straddle: Sell ATM Call + Sell ATM Put. (Profits if market stays flat).
+    - Short Strangle: Sell OTM Call + Sell OTM Put. (Safer than straddle).
+    - Iron Condor: A Strangle with "wings" (hedges). Sell OTM Call + Buy Far OTM Call (Protection) AND Sell OTM Put + Buy Far OTM Put (Protection). Defined risk, defined reward.
+  - Volatility Strategies
+    - Long Straddle: Buy ATM Call + Buy ATM Put. (Profits if market moves massively in any direction). Use before big events (Election results, Budget).
+
+- Trailing Stop Loss (Protecting Profits): Instead of a fixed Stop Loss (SL) at 100, you use a Trailing SL. Example: You buy at 100. SL at 90. Price moves to 110. You move SL to 100 (Cost). Price moves to 120. You move SL to 110. Benefit: If the market crashes from 120, you exit at 110, locking in a profit, rather than exiting at your original 90 loss.
+
+- The "Physical Settlement" Danger Zone
+  - This is unique to Indian Stock F&O (Does not apply to Nifty/BankNifty).
+  - The Rule: If you hold a Stock Future or an In-The-Money (ITM) Option until the moment of expiry (Thursday 3:30 PM), you generally cannot just settle in cash. You must physically take/give delivery of shares.
+  - The Delivery Margin Trap (Expiry Week): 
+    - Friday (E-4 days): Exchange asks for 10% of full contract value.
+    - Monday (E-3 days): 25% margin.
+    - Tuesday (E-2 days): 45% margin.
+    - Wednesday/Thursday: Up to 100% of contract value.
+  - Real World Example: You bought 1 lot of Reliance Calls. Premium paid: ₹5,000. If you hold till expiry and it expires ITM, you might suddenly be asked to pay ₹6 Lakhs (Contract Value) to take delivery of 250 shares.
+  - Solution: Always close Stock F&O positions by the Tuesday of expiry week unless you actually want to buy/sell the shares for crores.
+
+- Cash Carry Arbitrage (Risk-Free Returns)
+```
+This is a strategy used by wealthy traders/funds to earn interest-like returns. Concept: Futures usually trade at a Premium to Spot prices.
+Spot Price: 100
+Future Price: 101 (The ₹1 difference is the interest/cost of carry).
+The Trade:
+Buy 1 Lot of Shares in Cash Market (Spot) @ 100. Sell 1 Lot of Futures @ 101.
+The Result: On expiry day, Spot and Future prices MUST become equal.
+If price goes to 110: You gain ₹10 in Cash shares, lose ₹9 in Futures. Net Profit = ₹1.
+If price goes to 90: You lose ₹10 in Cash shares, gain ₹11 in Futures. Net Profit = ₹1.
+Why do it? It acts like a fixed deposit. If the spread is high (e.g., Future is trading 1% higher for a 1-month expiry), you lock in a 12% annualized return risk-free.
+```
+
+- Hedging with Futures (Portfolio Protection): Assume you have a Stock Portfolio worth ₹10 Lakhs (Long-term holdings). You are afraid the market will crash 10% next month due to election results, but you don't want to sell your shares.
+  - The Hedge: You Short Sell Nifty Futures. Calculation for Beta Hedging - If your portfolio Beta is 1.0, you short ₹10 Lakhs worth of Nifty Futures.
+  - Outcome: 
+    - If Market Crashes: Your Portfolio loses value, but your Short Nifty Future gains value. The profit offsets the loss.
+    - If Market Rallies: You lose on the Future, but gain on the Portfolio.
+    - Goal: To neutralize risk temporarily.
+
+- Market Cycles (Daily/Weekly/Monthly)
+  - Monthly Contracts: Stocks (Reliance, HDFC, etc.): ONLY Monthly expiry (Last Thursday of the month). No weekly options for stocks. Indices: Also have monthly contracts.
+  - Weekly Contracts (The "Zero Day" Action): Indices have Weekly Expiry. This has created a phenomenon where almost every day is an expiry day for some index, leading to high retail volume. Monday: BSE EXCH (Bankex) / Nifty Midcap Select; Tuesday: FINNIFTY (Financial Services); Wednesday: BANKNIFTY; Thursday: NIFTY 50; Friday: BSE SENSEX.
+  - Daily Contracts: Do not exist in Indian Equity derivatives yet. (Available in Commodities/Forex in some global markets, but not NSE Equity).
 
 
 **[⬆️ Back to Top](#table-of-contents)**

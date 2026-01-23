@@ -1260,7 +1260,7 @@ Extras - gRPC, Protobuf
     - Services (RPC methods)
     - Request / Response message schemas
     - Field numbers (critical for compatibility)
-      
+    
   ```
   Example:
   syntax = "proto3";
@@ -1318,7 +1318,7 @@ Extras - gRPC, Protobuf
     int64 id = 1; // newly generated ID
   }
   ```
-  
+
     - The `.proto` file is the **shared contract** between client and server. Client and server **compile against the same contract**. Can live in:
       - Shared proto repo (best practice)
       - Published artifact (Go module, Maven package)
@@ -1327,7 +1327,7 @@ Extras - gRPC, Protobuf
       - Generated (Automatic): Client stubs (typed methods), Server interfaces, Serialization / deserialization logic, Network plumbing
         - You get two Go files: `user.pb.go` → messages (structs, serialization), `user_grpc.pb.go` → client & server interfaces. 
         - Consider the same previously shared proto file example (previous points) and assume you ran the command; Then:
-          
+  
         ```
         Generated code in user.pb.go
 
@@ -1419,7 +1419,7 @@ Extras - gRPC, Protobuf
     - Protobuf Evolution & Compatibility Rules: 
       - Safe Changes (Backward Compatible): Add new fields in proto file, Add new RPC methods
       - Unsafe / Breaking Changes: Change field number, Reuse deleted field numbers, Change field type
-    - What Happens If Client Updates Proto But Server Does Not
+    - What happens if client updates proto but server doesn't:
 
       | Change               | Result                      |
       | -------------------- | --------------------------- |

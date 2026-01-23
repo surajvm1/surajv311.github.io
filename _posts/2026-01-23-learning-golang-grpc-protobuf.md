@@ -1318,6 +1318,7 @@ Extras - gRPC, Protobuf
         int64 id = 1; // newly generated ID
       }
       ```
+      
     - The `.proto` file is the **shared contract** between client and server. Client and server **compile against the same contract**. Can live in:
       - Shared proto repo (best practice)
       - Published artifact (Go module, Maven package)
@@ -1409,6 +1410,7 @@ Extras - gRPC, Protobuf
           grpcServer := grpc.NewServer()
           userv1.RegisterUserServiceServer(grpcServer, &UserServer{})
           ```
+          
       - NOT Generated (You Must Write): Business logic, Database access, Validation rules, Authorization, Caching, Observability
       - Hence backend and client teams accordingly implement their contract and business logic defined in protobuf. 
     - Schema Enforcement & Validation

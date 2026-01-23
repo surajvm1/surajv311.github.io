@@ -1248,78 +1248,76 @@ Miscellaneous stuff in Go
         Timeout: 5 * time.Second,
     }
   ```
-- Similarly other things like interface implementation patterns, Error design patterns, Time related libraries, etc. 
+- Similarly other things like Interface implementation patterns, Error design patterns, Time related libraries, etc. 
 
 ### Phase 7
 
 Extras - gRPC, Protobuf
 
 - Protocol Buffers are:
-  - A **language‑neutral interface definition language (IDL)**. A **binary serialization format**. A **schema + compatibility system**. 
+  - A language‑neutral interface definition language (IDL). A binary serialization format. A schema + compatibility system. 
   - Protobuf files (`.proto`) define:
     - Services (RPC methods)
     - Request / Response message schemas
     - Field numbers (critical for compatibility)
     
-  ```
-  Example:
-  syntax = "proto3";
-  // Package name used inside the generated code
-  package user.v1;
-  // Where Go code will live
-  option go_package = "github.com/example/project/gen/user/v1;userv1";
-  // UserService exposes user-related RPCs
-  service UserService {
-    // Get a user by ID
-    rpc GetUser(GetUserRequest) returns (GetUserResponse);
-    // Create a new user
-    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
-  }
-  // ===== Messages =====
-  // Request for fetching a user
-  message GetUserRequest {
-    // Unique user identifier
-    int64 id = 1;
-  }
+    ```
+    Example:
+    syntax = "proto3";
+    // Package name used inside the generated code
+    package user.v1;
+    // Where Go code will live
+    option go_package = "github.com/example/project/gen/user/v1;userv1";
+    // UserService exposes user-related RPCs
+    service UserService {
+      // Get a user by ID
+      rpc GetUser(GetUserRequest) returns (GetUserResponse);
+      // Create a new user
+      rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+    }
+    // Messages: Request for fetching a user
+    message GetUserRequest {
+      // Unique user identifier
+      int64 id = 1;
+    }
+    ----------------------------------------------------------------
+    __Note__: Observe we have marked field with number above. 
+    They are the real identifiers of fields on the wire — not the field names. What goes on the wire (meaning the exact bytes that leave one machine and travel to another machine over the network):
+    
+    JSON sends names + values:
+    {
+      "id": 42,
+      "name": "Alice"
+    }
+    Wire contains: "id" + ":" + "42" + "name" + ":" + "Alice" ...: Actual bytes: 7b 22 69 64 22 3a 34 32 2c 22 6e... 
   
-  ----------------------------------------------------------------
-  **Note**: Observe we have marked field with number above. 
-  They are the real identifiers of fields on the wire — not the field names. What goes on the wire (meaning the exact bytes that leave one machine and travel to another machine over the network):
+    Protobuf sends (tag + type) + value:
+    For id = 1 (int64): [ field_number << 3 | wire_type ] [ value bytes ]
+    So on the wire it’s more like: 08 2A. No field names at all.
   
-  JSON sends names + values:
-  {
-    "id": 42,
-    "name": "Alice"
-  }
-  Wire contains: "id" + ":" + "42" + "name" + ":" + "Alice" ...: Actual bytes: 7b 22 69 64 22 3a 34 32 2c 22 6e... 
+    > JSON "id":42: ~7 bytes, Protobuf id=1 → 42: bytes. This makes it much more compact than JSON. The numbers must not change, its part of contract. 
+    > Serialization/Deserialization is also fast.  
+    > Protobuf sends data as compact numeric keys and values. Client and server map those numeric keys to real field names using the shared schema. In other words: Protobuf compresses the “key” part of key-value data into tiny numbers, relying on a shared schema instead of repeating field names on the wire.
+    ----------------------------------------------------------------
+  
+    // Response containing user data
+    message GetUserResponse {
+      int64 id = 1;
+      string name = 2;
+      string email = 3;
+    }
+    // Request for creating a user
+    message CreateUserRequest {
+      string name = 1;
+      string email = 2;
+    }
+    // Response after user creation
+    message CreateUserResponse {
+      int64 id = 1; // newly generated ID
+    }
+    ```
 
-  Protobuf sends (tag + type) + value:
-  For id = 1 (int64): [ field_number << 3 | wire_type ] [ value bytes ]
-  So on the wire it’s more like: 08 2A. No field names at all.
-
-  > JSON "id":42: ~7 bytes, Protobuf id=1 → 42: bytes. This makes it much more compact than JSON. The numbers must not change, its part of contract. 
-  > Serialization/Deserialization is also fast.  
-  > Protobuf sends data as compact numeric keys and values. Client and server map those numeric keys to real field names using the shared schema. In other words: Protobuf compresses the “key” part of key-value data into tiny numbers, relying on a shared schema instead of repeating field names on the wire.
-  ----------------------------------------------------------------
-
-  // Response containing user data
-  message GetUserResponse {
-    int64 id = 1;
-    string name = 2;
-    string email = 3;
-  }
-  // Request for creating a user
-  message CreateUserRequest {
-    string name = 1;
-    string email = 2;
-  }
-  // Response after user creation
-  message CreateUserResponse {
-    int64 id = 1; // newly generated ID
-  }
-  ```
-
-    - The `.proto` file is the **shared contract** between client and server. Client and server **compile against the same contract**. Can live in:
+    - The `.proto` file is the shared contract between client and server. Client and server compile against the same contract. Can live in:
       - Shared proto repo (best practice)
       - Published artifact (Go module, Maven package)
       - Copied into both repos (simpler teams)
@@ -1410,7 +1408,7 @@ Extras - gRPC, Protobuf
         grpcServer := grpc.NewServer()
         userv1.RegisterUserServiceServer(grpcServer, &UserServer{})
         ```
-        
+  
       - NOT Generated (You Must Write): Business logic, Database access, Validation rules, Authorization, Caching, Observability
       - Hence backend and client teams accordingly implement their contract and business logic defined in protobuf. 
     - Schema Enforcement & Validation
@@ -1427,10 +1425,10 @@ Extras - gRPC, Protobuf
       | Client removes field | Server sees default value   |
       | Client changes type  | Decode failure / corruption |
 
-- gRPC Is
-  - A **high‑performance RPC (Remote Procedure Call) framework** developed by Google. Built on **HTTP/2**. Uses **Protocol Buffers (Protobuf)** as default serialization format. Enables **strongly‑typed, contract‑first APIs** between services. 
+- gRPC is
+  - A high‑performance RPC (Remote Procedure Call) framework developed by Google. Built on HTTP/2. Uses Protocol Buffers (Protobuf) as default serialization format. Enables strongly‑typed, contract‑first APIs between services. 
   - Mental model: gRPC = calling a remote function as if it were a local function. We'll learn more. 
-  - gRPC Error Handling: Uses **status codes**, not HTTP codes directly. Common codes: OK, InvalidArgument, NotFound, Unauthenticated, PermissionDenied, Internal.
+  - gRPC Error Handling: Uses status codes, not HTTP codes directly. Common codes: OK, InvalidArgument, NotFound, Unauthenticated, PermissionDenied, Internal.
   - gRPC Communication Patterns:
     - Unary (request → response)
     - Server streaming: Client sends one request, server streams many responses. Eg: Logs, Live metrics, Pagination replacement. No repeated HTTP calls, Continuous data flow. 
@@ -1438,8 +1436,8 @@ Extras - gRPC, Protobuf
     - Bidirectional streaming: Client and server stream independently. Eg: Chat systems, Real-time collaboration, Online gaming. REST equivalent: WebSockets (extra complexity). 
   - REST supports only unary‑like behavior.
   - Transport layer differences: 
-    - REST: Usually HTTP/1.1, Text-based JSON, One request–response per call, Limited multiplexing (means sending multiple independent streams of data or request over a single connection at the same time), Headers sent repeatedly, Often opens **new TCP connections** (unless keep-alive is tuned).
-    - gRPC: Built on **HTTP/2**, Binary framing, **Single long-lived/Persistent TCP connection** so no TCP+TLS handshake per request, **Multiplexed streams** over one connection so no head-of-line blocking, Header compression (HPACK), Flow control at transport level
+    - REST: Usually HTTP/1.1, Text-based JSON, One request–response per call, Limited multiplexing (means sending multiple independent streams of data or request over a single connection at the same time), Headers sent repeatedly, Often opens new TCP connections (unless keep-alive is tuned).
+    - gRPC: Built on HTTP/2, Binary framing, Single long-lived/Persistent TCP connection so no TCP+TLS handshake per request, Multiplexed streams over one connection so no head-of-line blocking, Header compression (HPACK), Flow control at transport level
     - Result: Fewer TCP handshakes, Lower latency, Better bandwidth utilization, Much lower CPU cost, Smaller payloads so faster encode/decode (Protobuf). Although debugging in gRPC ecosystem is harder than REST. 
   - Can REST Use Protobuf?: Yes, but uncommon. Used when: Browser or external clients are required. Options:
     - REST with protobuf payloads (`application/x-protobuf`)

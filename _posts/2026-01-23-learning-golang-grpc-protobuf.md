@@ -1261,63 +1261,64 @@ Extras - gRPC, Protobuf
     - Request / Response message schemas
     - Field numbers (critical for compatibility)
       
-    ```
-    Example:
-    syntax = "proto3";
-    // Package name used inside the generated code
-    package user.v1;
-    // Where Go code will live
-    option go_package = "github.com/example/project/gen/user/v1;userv1";
-    // UserService exposes user-related RPCs
-    service UserService {
-      // Get a user by ID
-      rpc GetUser(GetUserRequest) returns (GetUserResponse);
-      // Create a new user
-      rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
-    }
-    // ===== Messages =====
-    // Request for fetching a user
-    message GetUserRequest {
-      // Unique user identifier
-      int64 id = 1;
-    }
-    
-    ----------------------------------------------------------------
-    **Note**: Observe we have marked field with number above. 
-    They are the real identifiers of fields on the wire — not the field names. What goes on the wire (meaning the exact bytes that leave one machine and travel to another machine over the network):
-    
-    JSON sends names + values:
-    {
-      "id": 42,
-      "name": "Alice"
-    }
-    Wire contains: "id" + ":" + "42" + "name" + ":" + "Alice" ...: Actual bytes: 7b 22 69 64 22 3a 34 32 2c 22 6e... 
+  ```
+  Example:
+  syntax = "proto3";
+  // Package name used inside the generated code
+  package user.v1;
+  // Where Go code will live
+  option go_package = "github.com/example/project/gen/user/v1;userv1";
+  // UserService exposes user-related RPCs
+  service UserService {
+    // Get a user by ID
+    rpc GetUser(GetUserRequest) returns (GetUserResponse);
+    // Create a new user
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  }
+  // ===== Messages =====
+  // Request for fetching a user
+  message GetUserRequest {
+    // Unique user identifier
+    int64 id = 1;
+  }
+  
+  ----------------------------------------------------------------
+  **Note**: Observe we have marked field with number above. 
+  They are the real identifiers of fields on the wire — not the field names. What goes on the wire (meaning the exact bytes that leave one machine and travel to another machine over the network):
+  
+  JSON sends names + values:
+  {
+    "id": 42,
+    "name": "Alice"
+  }
+  Wire contains: "id" + ":" + "42" + "name" + ":" + "Alice" ...: Actual bytes: 7b 22 69 64 22 3a 34 32 2c 22 6e... 
 
-    Protobuf sends (tag + type) + value:
-    For id = 1 (int64): [ field_number << 3 | wire_type ] [ value bytes ]
-    So on the wire it’s more like: 08 2A. No field names at all.
+  Protobuf sends (tag + type) + value:
+  For id = 1 (int64): [ field_number << 3 | wire_type ] [ value bytes ]
+  So on the wire it’s more like: 08 2A. No field names at all.
 
-    > JSON "id":42: ~7 bytes, Protobuf id=1 → 42: bytes. This makes it much more compact than JSON. The numbers must not change, its part of contract. 
-    > Serialization/Deserialization is also fast.  
-    > Protobuf sends data as compact numeric keys and values. Client and server map those numeric keys to real field names using the shared schema. In other words: Protobuf compresses the “key” part of key-value data into tiny numbers, relying on a shared schema instead of repeating field names on the wire.
-    ----------------------------------------------------------------
+  > JSON "id":42: ~7 bytes, Protobuf id=1 → 42: bytes. This makes it much more compact than JSON. The numbers must not change, its part of contract. 
+  > Serialization/Deserialization is also fast.  
+  > Protobuf sends data as compact numeric keys and values. Client and server map those numeric keys to real field names using the shared schema. In other words: Protobuf compresses the “key” part of key-value data into tiny numbers, relying on a shared schema instead of repeating field names on the wire.
+  ----------------------------------------------------------------
 
-    // Response containing user data
-    message GetUserResponse {
-      int64 id = 1;
-      string name = 2;
-      string email = 3;
-    }
-    // Request for creating a user
-    message CreateUserRequest {
-      string name = 1;
-      string email = 2;
-    }
-    // Response after user creation
-    message CreateUserResponse {
-      int64 id = 1; // newly generated ID
-    }
-    ```
+  // Response containing user data
+  message GetUserResponse {
+    int64 id = 1;
+    string name = 2;
+    string email = 3;
+  }
+  // Request for creating a user
+  message CreateUserRequest {
+    string name = 1;
+    string email = 2;
+  }
+  // Response after user creation
+  message CreateUserResponse {
+    int64 id = 1; // newly generated ID
+  }
+  ```
+  
     - The `.proto` file is the **shared contract** between client and server. Client and server **compile against the same contract**. Can live in:
       - Shared proto repo (best practice)
       - Published artifact (Go module, Maven package)
@@ -1409,6 +1410,7 @@ Extras - gRPC, Protobuf
         grpcServer := grpc.NewServer()
         userv1.RegisterUserServiceServer(grpcServer, &UserServer{})
         ```
+        
       - NOT Generated (You Must Write): Business logic, Database access, Validation rules, Authorization, Caching, Observability
       - Hence backend and client teams accordingly implement their contract and business logic defined in protobuf. 
     - Schema Enforcement & Validation

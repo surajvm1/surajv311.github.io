@@ -1446,6 +1446,4 @@ Extras - gRPC, Protobuf
     - Best for: Internal microservices, High‑throughput systems, Low latency requirements, Streaming use cases, Strong contracts across teams
     - Avoid when: Public APIs, Browser‑heavy clients, Simple CRUD apps
 
-
 ------------------------------------------------
-

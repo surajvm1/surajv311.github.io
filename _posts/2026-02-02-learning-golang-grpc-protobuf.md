@@ -69,7 +69,7 @@ Nuances in Go:
   ```
 - No semicolons (mostly) to end code in line. Go takes care of it. Eg: `var x int = 10 is fine, no need for var x int = 10;`. 
 - Explicit conversions must be done if required in values. Eg: `var y float64 = float64(x)`.
-- if / for / switch need no parentheses
+- if / for / switch need no parentheses.
 - Only ONE loop keyword: for. No while, no do-while.
 - Functions can return multiple values.
 
@@ -129,10 +129,10 @@ Nuances in Go:
   var s []int // dynamic - slice
 
   Note:
-  1. nil slice ≠ empty slice
-  var s []int     // nil
-  s := []int{}    // empty
-  1. To add elements in slice, eg: s = append(s, "hello")
+  1. nil slice ≠ empty slice. Eg: 
+     var s []int     // nil
+     s := []int{}    // empty
+  2. To add elements in slice, eg: s = append(s, "hello")
   ```
 - Maps must be initialized
   
@@ -175,6 +175,15 @@ Nuances in Go:
     func (u *User) Greet() string {
         return "Hi " + u.name
     }
+  
+    > Creating a User value (without pointers) can be done like: u := User{name: "Suraj"}.
+    > Now, coming back to our pointer OOP example:
+       User{name: name} → creates a User value.
+       & → takes its address.
+       Result type → *User (pointer to User).
+       Memory picture: 0x1000 ─▶ User{name: "Suraj"}.
+    > In the (u *User) the receiver function, u is a pointer, u.name automatically dereferences the pointer (Go does this for you, else you would've to write like: (*u).name)
+    > There is no separate “address type”. The only way to represent an address is with a pointer type (*User). Go does NOT allow raw memory addresses like C: return 0x7ffeefbff5a8; Only return &User{name: "Suraj"}. Can imagine as pointer types being safe abstraction over addresses.
     ```  
 
 ### Phase 1
@@ -202,7 +211,7 @@ Nuances in Go:
   var name1, name2 string
   var age int
   var isAdmin bool
-  name = "foo"
+  name1 = "foo"
   name2 = "bar"
   age = 25
   isAdmin = false
@@ -327,6 +336,12 @@ Nuances in Go:
   for i, v := range nums {
     fmt.Println(i, v)
   }
+  // i=index, v=value
+
+  Run like while loop:
+  for sum < 1000 {
+  	sum += 1 // doubles the value of sum
+  }
 
   If-Else:
   if x > 10 {
@@ -346,15 +361,18 @@ Nuances in Go:
   }
   ```
 
-- Functions
+- Functions & Methods
+  - Function: standalone, not tied to any type
+  - Method: function attached to a type (receiver), called on a value.
+  - Methods give behavior to structs; functions are just helpers. (Check eg., below)
   
   ```
-  Normal:
+  Normal function:
   func add(a int, b int) int {
     return a + b
   }
 
-  Multiple returns: 
+  Multiple returns function: 
   func divide(a, b int) (int, error) {
     if b == 0 {
         return 0, errors.New("divide by zero")
@@ -362,7 +380,26 @@ Nuances in Go:
     return a / b, nil
   }
 
-  // Structs, Interface, covered in past. 
+  // Structs, Interface, covered in past.
+
+  Methods: To understand this, let's compare it with function:
+  Assume struct:
+  type User struct {
+	  name string
+  }
+  Plain function (NOT attached to anything)
+  func sayHello(a, b int) {
+	  fmt.Println("hello", a, b)
+  }
+  Now, Method (attached to a struct)
+  func (u *User) sayHello(a, b int) {
+  	fmt.Println("hello", u.name, a, b)
+  }
+  (u *User) means: This function is attached to User and operates on a User object.
+  How it becomes accessible: 
+  u := &User{name: "Suraj"}
+  u.sayHello(1, 2)
+  // Even though method receiver is *User, u.sayHello() works, as Go automatically takes care of addresses: (&u).sayHello()  
   ```
 
 ### Phase 2
@@ -378,11 +415,14 @@ hello-go/
     └── add.go
 ```
 
-Create go.mod using: `go mod init hello-go`.
+Create go.mod using: `go mod init hello-go`. Note for production related projects, consider naming convention like: github.com/XYZCompanyOrName/project
 
 go.mod can be imagined as: requirements.txt + project identity + version lock.
 
-Keeping module name same as folder name is best practice, else when you import other packages, you'll have to do an explicit handling. 
+Keeping module name same as folder name is best practice, else when you import other packages, you'll have to do an explicit handling.
+- Go mod or module name you define in command becomes the prefix for all imports inside this project. Hence use proper module name like: `go mod init github.com/X/myproject` therefore `import "github.com/X/myproject/internal/utils"`.
+- Go does not support relative imports (except very special cases you should avoid) like: `import "./utils"`. Note that you could rename the folder, it wouldn't matter, Go builds based on module identity, not folder naming.
+- Hence file in `/Users/X/work/nats-consumer/...` doesn't matter, Go sees it as it's inside `github.com/X/myproject/nats-consumer/...` 
 
 Files: 
 
@@ -405,7 +445,7 @@ func main() {
     sum := mathutils.Add(3, 4)
     fmt.Println("Sum:", sum)
 }
-// Note: Import path = module + folder, and not exactly as folder path. 
+// Note: Import path = (module name initialized) + (folder or relative path from go.mod to the package directory).
 ```
 
 Run program using: `go run .`
@@ -413,6 +453,36 @@ Run program using: `go run .`
 To install third party packages: go get github.com/google/uuid
 
 When you do so, a go.sum file is created (you don’t edit this). It stores checksums, ensures integrity; Can be imagined as pip-lock/poetry.lock file in Python. 
+Version selection happens via go.mod (what versions). Integrity is enforced via go.sum (prove this code hasn’t changed). 
+
+Key Go Directory Naming Conventions: 
+
+```
+- cmd/: Contains entry points for executable binaries. Each subdirectory (cmd/app1, cmd/app2) acts as a main package, allowing a single repository to generate multiple binaries.
+- internal/: Contains code intended only for this project, enforced by the Go compiler. Code in internal/ cannot be imported by other projects, making it ideal for encapsulated application logic.
+- pkg/: Contains library code designed to be consumed by external applications or other projects, serving as a shared library.
+- api/: Houses API definitions such as Swagger/OpenAPI specs, JSON schemas, or Protocol Buffers.
+- configs/: Stores configuration files or default configuration templates.
+- web/: Holds front-end components, such as static assets, HTML templates, or CSS/JS files.
+- scripts/: Contains build, installation, analysis, or administrative scripts.
+- testdata/: Stores data files required for tests; Go tools automatically ignore this directory during building.
+- vendor/: Contains application dependencies. Although becoming less common with Go modules, it's still a standard directory name for vendored code.
+- test/ (or tests/): Used for system or integration tests, rather than unit tests which usually reside alongside the code. 
+```
+
+Essential Go commands: 
+
+```
+go run .                 # run main package
+go build                 # build binary
+go build ./cmd/consumer  # build specific binary
+go get github.com/google/uuid   # add dependency
+go mod tidy                    # clean unused deps (VERY important)
+go list -m all                 # list modules
+go fmt ./...       # auto-format code
+go vet ./...       # static analysis
+go test ./...      # run all tests
+```
 
 ### Phase 3
 

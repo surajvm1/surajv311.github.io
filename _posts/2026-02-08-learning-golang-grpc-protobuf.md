@@ -122,6 +122,8 @@ Nuances in Go:
     *int guarantees dereferencing gives an int ~ Type safety (prevents invalid memory access)
     ```
 
+	- Interesting [read on pointers](https://stackoverflow.com/questions/64235422/are-there-differences-between-int-pointer-and-char-pointer-in-c).
+
 - Arrays vs slices: Arrays are fixed, Slices in Go are dynamic sized (mostly used). 
   
   ```
@@ -133,7 +135,16 @@ Nuances in Go:
      var s []int     // nil
      s := []int{}    // empty
   2. To add elements in slice, eg: s = append(s, "hello")
+  3. Conversions:
+       Array to Slice:
+         a := [5]int{1, 2, 3, 4, 5}
+         s := a[:] // Could also have partial slice [1:4]
+       Slice to Array
+         s := []int{1, 2, 3, 4, 5}
+         var a [5]int
+         copy(a[:], s)
   ```
+
 - Maps must be initialized
   
   ```
@@ -141,6 +152,7 @@ Nuances in Go:
   Doing: m["a"] = 1 // Wrong
   Rather: m := make(map[string]int)
   ```
+  
   Note: 
 
   | new                | make                    |
@@ -283,7 +295,11 @@ Nuances in Go:
           }
       price := m["apple"]
 
-    Structs ~ 
+    Pointers ~ 
+    > x := 10
+      p := &x   // pointer to x
+
+    Structs ~ Holds data
     > type User struct {
           Name string
           Age  int
@@ -292,13 +308,15 @@ Nuances in Go:
           Name: "suraj",
           Age:  25,
       }
-      fmt.Println(u.Name) // Capitalized, hence public access from all packages, if lowercase letters named in struct then private access. 
-    
-    Pointers ~ 
-    > x := 10
-      p := &x   // pointer to x
+      fmt.Println(u.Name) // Capitalized, hence public access from all packages, if lowercase letters named in struct then private access.
+      > Struct tags: They are defined as key-value pairs enclosed in backticks `` immediately following the field declaration. They are small pieces of metadata. They are ignored by normal Go code execution but are highly useful for tasks like data serialization, database mapping, and validation - which third-party libraries leverage, like Viper. Ex: 
+		type User struct {
+			Name     string `json:"user_name" db:"name,unique"`
+			Age      int    `json:"age,omitempty"`
+			Password string `json:"-"`
+		}
 
-    Interface (behavior, not data) ~
+    Interface (Projects behaviour, unlike struct) ~
     > type Speaker interface {
         Speak() string
       }
@@ -308,6 +326,130 @@ Nuances in Go:
       }
     ```
 
+	- Functions & Methods
+	  - Function: standalone, not tied to any type. Method: function attached to a type (receiver), called on a value.
+	  - Methods give behavior to structs; functions are just helpers. Eg: 
+	  
+	  ```
+	  Normal/Free function:
+	  func add(a int, b int) int {
+	    return a + b
+	  }
+
+      Variadic functions: Accepts any number of arguments of the same type. Can be used for multiple arguments or slices.
+	  // Variadic Mode: ...int → becomes []int inside function. Note that only last parameter can be variadic.
+	  func sum(nums ...int) int {
+		  total := 0
+		  for _, n := range nums {
+		      total += n
+		  }
+		  return total
+	  }
+	  sum(1, 2)
+      sum(1, 2, 3)       
+	  sum()           // Valid: nums is a nil slice
+	  s := []int{1, 2, 3, 4} // using slice 
+	  sum(s...)       // Must "unpack" with ...
+      // You could also pass slices normally, eg: 
+	  func sumForSlice(s []int) int { // Type must be []int
+	      total := 0
+	      for _, n := range s {      
+	          total += n
+	      }
+	      return total
+	  }
+	  s2 := []int{1, 2, 3, 4}
+	  sumForSlice(s2) // Pass directly; no unpacking needed   
+	
+	  Multiple returns function: 
+	  func divide(a, b int) (int, error) {
+	    if b == 0 {
+	        return 0, errors.New("divide by zero")
+	    }
+	    return a / b, nil
+	  }
+		
+	  Methods: Assume a struct, 
+	  type User struct {
+		  name string
+	  }
+	  Plain function (NOT attached to anything): 
+	  	func sayHello(a, b int) {
+		  	fmt.Println("hello", a, b)
+	  	}
+	  Method (attached to a struct): 
+	  	func (u *User) sayHello(a, b int) {
+	  		fmt.Println("hello", u.name, a, b)
+	  	}
+	  (u *User) means:
+      	This function is attached to User and operates on a User object.
+	  How it becomes accessible: 
+	  	u := &User{name: "Suraj"}
+	  	u.sayHello(1, 2) // Even though method receiver is *User, u.sayHello() works, as Go automatically takes care of addresses: (&u).sayHello()
+	  
+      A struct can have multiple behaviors by implementing multiple interfaces.
+      type Flyer interface {
+		 Fly() string
+	  }
+	  type Swimmer interface {
+		 Swim() string
+	  }
+	  type Duck struct {
+		 Name string
+	  }
+	  func (d Duck) Fly() string {
+		 return d.Name + " is flying"
+	  }
+	  func (d *Duck) Swim() string {
+		 return d.Name + " is swimming"
+	  }
+	  func main() {
+		 d := Duck{Name: "Donald"}
+		 var f Flyer = d // Way 1 to do it
+		 var s Swimmer = &d // Way 2 to do it, since go handles pass by reference. Also note we are assigning struct d inside interface Flyer/Swimmer - will learn about it
+		 fmt.Println(f.Fly())
+		 fmt.Println(s.Swim())
+	  }
+	  How can an interface "equal" a struct?: var f Flyer = d.
+        An interface value is two things: (interface type, concrete value). Hence above one is internally stored as:
+		Flyer interface
+		└── concrete type: Duck
+		└── concrete value: Duck{Name: "Donald"}
+		The interface does NOT become the struct. The struct is stored INSIDE the interface. This is different from java / python.
+  
+	  > Interfaces can only be satisfied by methods, not free functions. Consider same above example: 
+		func Fly(d Duck) string {
+			return d.Name + " is flying"
+		}
+		Fly(d)
+		func (d Duck) Fly() string {
+			return d.Name + " is flying"
+		}
+		d.Fly()
+		Both are conceptually same, second form enables interface and method sets. 
+
+	  > Value vs Pointer receiver nuance; Say the receiver is: 
+  		> d Duck -> It cannot modify struct.
+  		> d *Duck -> It can modify struct.  
+		Another ex:
+  		type Rectangle struct {
+		    width, height int
+		}
+		func (r Rectangle) Area() int { // Define a method for the Rectangle struct using a value receiver
+		    return r.width * r.height
+		}
+		func (r *Rectangle) Scale(factor int) { // Define a method with a pointer receiver to modify the original struct
+		    r.width *= factor
+		    r.height *= factor
+		}
+		func main() {
+		    myRect := Rectangle{width: 10, height: 5} // Create an instance of the struct	    
+		    fmt.Println("Area:", myRect.Area()) // Output: Area: 50
+		    myRect.Scale(2)
+		    fmt.Println("New Width:", myRect.width) // Output: New Width: 20
+		}
+	  ```
+  
   - DataTypes:
     
     ```
@@ -316,7 +458,7 @@ Nuances in Go:
     true    // bool
     "hi"    // string
     'A'     // byte
-    '世'     // rune
+    '世'    // rune
     ```
 
 - Loops/If-Else/Switches
@@ -329,7 +471,7 @@ Nuances in Go:
 
   Infinite loop:
   for {
-    fmt.Println("running")
+	fmt.Println("running")
   }
 
   Loop over slice/map:
@@ -354,52 +496,13 @@ Nuances in Go:
   switch day {
     case "Mon":
         fmt.Println("Start")
-    case "Sun":
+    case "Sun": 
         fmt.Println("Rest")
     default:
         fmt.Println("Other")
   }
-  ```
-
-- Functions & Methods
-  - Function: standalone, not tied to any type
-  - Method: function attached to a type (receiver), called on a value.
-  - Methods give behavior to structs; functions are just helpers. (Check eg., below)
-  
-  ```
-  Normal function:
-  func add(a int, b int) int {
-    return a + b
-  }
-
-  Multiple returns function: 
-  func divide(a, b int) (int, error) {
-    if b == 0 {
-        return 0, errors.New("divide by zero")
-    }
-    return a / b, nil
-  }
-
-  // Structs, Interface, covered in past.
-
-  Methods: To understand this, let's compare it with function:
-  Assume struct:
-  type User struct {
-	  name string
-  }
-  Plain function (NOT attached to anything)
-  func sayHello(a, b int) {
-	  fmt.Println("hello", a, b)
-  }
-  Now, Method (attached to a struct)
-  func (u *User) sayHello(a, b int) {
-  	fmt.Println("hello", u.name, a, b)
-  }
-  (u *User) means: This function is attached to User and operates on a User object.
-  How it becomes accessible: 
-  u := &User{name: "Suraj"}
-  u.sayHello(1, 2)
-  // Even though method receiver is *User, u.sayHello() works, as Go automatically takes care of addresses: (&u).sayHello()  
+  // Could also give multiple conditions like: case "Sun", "Tues":...
+  // It's same as writing: case day == "Sun" || day == "Sun2":...
   ```
 
 ### Phase 2
@@ -489,7 +592,7 @@ go test ./...      # run all tests
 Go - Memory model 
 
 - Memory model
-  - A Go binary compiled for macOS will not run on Windows because binaries are OS- and architecture-specific (like ARM64, x86_64), but Go allows cross-compiling by targeting the desired OS and CPU (like `GOOS=windows GOARCH=amd64 go build`).
+  - A Go binary compiled for macOS will not run on Windows because binaries are OS and architecture-specific (like ARM64, x86_64), but Go allows cross-compiling by targeting the desired OS and CPU (like `GOOS=windows GOARCH=amd64 go build`). [Interesting read](https://www.digitalocean.com/community/tutorials/building-go-applications-for-different-operating-systems-and-architectures).
   - Every program uses two main memory regions (both reside in RAM):
     - Stack: Fast, Automatically managed, Function-scoped, Freed when function returns
     - Heap: Slower than stack, Manually (C) or GC-managed (Go/Java/Python), Used when data must live longer
@@ -574,7 +677,7 @@ Go - Memory model
 Go - Error handling 
 
 - Error handling  
-  - defer: schedules a function call to run when the surrounding function returns. It executes in LIFO order. Although, avoid using it in extreme tight loops. 
+  - defer: schedules a function call to run when the surrounding function returns, in other words defer runs after return is executed, but before the function actually exits. It executes in LIFO order. Although, avoid using it in extreme tight loops. Using defer to clean up resources is very common in Go. 
     
     ```
     Eg 1: 
@@ -619,9 +722,9 @@ Go - Error handling
             }()
       ``` 
 
-  - panic & recover: immediately stops normal execution of the current goroutine and begins stack unwinding. It’s a last-resort mechanism for programmer errors or truly unrecoverable states. Only the panicking goroutine unwinds its stack (will learn about this in ex).
+  - panic: immediately stops normal execution of the current goroutine and begins stack unwinding. There are certain operations in Go that automatically return panics and stop the program like indexing an array beyond its capacity, performing type assertions, etc. We can also generate panics of our own using the panic built-in function. It’s a last-resort mechanism for programmer errors or truly unrecoverable states. Only the panicking goroutine unwinds its stack (will learn about this in ex).
     - Deferred functions or other goroutines still run. 
-    - Program crashes unless the panic is 'recovered'. recover() stops stack unwinding and only works inside a deferred function.
+    - Program crashes unless the panic is 'recovered'. `recover()` stops stack unwinding and only works inside a deferred function.
     - Note that if the caller can handle it → return an error. If the program is broken → panic.
       
       ```
@@ -770,6 +873,29 @@ Go - Error handling
         - The Action: You realize the "impossible state" might actually happen in production (e.g., a database record was deleted). You replace panic with return err.
         - The Goal: To move from crashing to communicating.
         - The Outcome: The program remains running. The caller now has the power to log the issue, retry, or show a friendly message to the user.
+
+		```
+      	Another ex: 
+		func main() {
+			divideByZero()
+			fmt.Println("we survived dividing by zero!")
+		
+		}
+		func divideByZero() {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Println("panic occurred:", err)
+				}
+			}()
+			fmt.Println(divide(1, 0))
+		}
+		func divide(a, b int) int {
+			if b == 0 {
+				panic(nil)
+			}
+			return a / b
+		}
+	  	```
 
 ### Phase 5
 
@@ -963,6 +1089,16 @@ Go - Concurrency
             ok == false → channel is closed
             v → zero value
             ```
+            
+        - Channel Ownership:
+		  
+          ```
+          // Compiler enforces ownership rules. You can restrict direction when passing a channel, but you cannot widen it again. Depending your use case, you may use bi-directional channel or restrict it 
+		  func produceJobs(jobs chan<- int, n int) {
+		    jobs <- 1      // ✅ allowed
+			<-jobs         // ❌ compile-time error
+		  }
+          ```
 
     - Blocking Rules: 
       - Unbuffered Channel `ch := make(chan int)`: Send and Receive must happen at the same time like a handshake. Synchronization first, data second. If you send, but no receiver then its blocked (pending state), vice versa. Ex:
@@ -1212,7 +1348,7 @@ Go - Concurrency
 
 Miscellaneous stuff in Go
 
-- Testing: 
+- Testing: [Other doc](https://www.digitalocean.com/community/tutorials/how-to-write-unit-tests-in-go-using-go-test-and-the-testing-package)
   
   ```
   func TestAdd(t *testing.T) {
@@ -1293,7 +1429,7 @@ Miscellaneous stuff in Go
   import "log" or "slog"
   ```
 
-- HTTP Calls: 
+- HTTP API Calls: [Interesting read](https://www.digitalocean.com/community/tutorials/how-to-make-http-requests-in-go)
   
   ```
   Use net/http package. It: 
@@ -1318,7 +1454,9 @@ Miscellaneous stuff in Go
         Timeout: 5 * time.Second,
     }
   ```
-- Similarly other things like Interface implementation patterns, Error design patterns, Time related libraries, etc. 
+
+- Marshalling, sometimes also known as serialization, is the process of transforming program data in memory into a format that can be transmitted or saved elsewhere. The json.Marshal function, then, is used to convert Go data into JSON data.
+- Similarly other things like Interface implementation patterns, Error design patterns, [Time related functions](https://www.digitalocean.com/community/tutorials/how-to-use-dates-and-times-in-go), etc. 
 
 ### Phase 7
 

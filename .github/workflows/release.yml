@@ -1,0 +1,143 @@
+# CI/CD overview
+#
+# Handled by THIS workflow:
+#   - CI Checks: YAML lint, post front matter / image reference checks, version validation
+#   - Build:     test build of the site on pull requests (pre-merge safety net)
+#   - Release:   git tag + GitHub release from `version` in _config.yml. Runs only AFTER
+#                GitHub's Pages deployment finishes successfully (see `workflow_run` below),
+#                so a tag always means the site is live.
+#
+# Handled AUTOMATICALLY by GitHub (not defined here):
+#   - "pages-build-deployment" workflow (shown as "pages build and deployment"): because Pages source is "Deploy from a branch",
+#     GitHub itself builds the Jekyll site (github-pages gem) and deploys it on every push
+#     to main. So this workflow does NOT build or deploy the live site on push to main.
+#   - Caveat: that GitHub-managed workflow runs independently, so a failed check here
+#     does not stop the live deploy. CI Checks/Build mainly protect pull requests.
+#
+# Flow on push to main:
+#   push -> [CI Checks] (this workflow)  +  [pages build and deployment] (GitHub)
+#                                                  |  succeeds
+#                                                  v
+#                                    workflow_run -> [Release] (this workflow)
+
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Fires when GitHub's built-in Pages workflow finishes. Used to release after deploy.
+  workflow_run:
+    workflows: ["pages-build-deployment"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  ci-checks:
+    name: CI Checks
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
+    steps:
+      - name: CI Checks | Checkout repository
+        uses: actions/checkout@v4
+
+      # Reads `version:` from _config.yml and exposes it as tag "vX.Y.Z"
+      - name: CI Checks | Read version from _config.yml
+        id: version
+        run: |
+          VERSION=$(grep -E '^version:' _config.yml | head -1 | sed -E 's/^version:[[:space:]]*//; s/["'\'']//g; s/[[:space:]]+$//')
+          if [ -z "$VERSION" ]; then
+            echo "version not found in _config.yml" >&2
+            exit 1
+          fi
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      # Fails the check if version is not semantic (e.g. 1.1.11)
+      - name: CI Checks | Validate version format (X.Y.Z)
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if ! echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Invalid version '$TAG' in _config.yml, expected X.Y.Z" >&2
+            exit 1
+          fi
+
+      # Rules in .yamllint.yml
+      - name: CI Checks | Lint YAML (config and workflows)
+        run: |
+          pip install --quiet yamllint
+          yamllint -c .yamllint.yml _config.yml .github/workflows
+
+      # Required front matter, allowed categories, referenced images exist
+      # (see .github/scripts/check_site.py)
+      - name: CI Checks | Validate post front matter and image references
+        run: python3 .github/scripts/check_site.py
+
+  # Pull requests only. On push to main, GitHub's own "pages build and deployment"
+  # workflow already builds the site, so repeating it here would be redundant.
+  build:
+    name: Build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build | Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build | Set up Ruby and install gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Build | Build Jekyll site
+        run: bundle exec jekyll build
+
+      - name: Build | Verify generated output (index, feed, sitemap)
+        run: |
+          for f in index.html feed.xml sitemap.xml 404.html; do
+            test -s "_site/$f" || { echo "Missing or empty _site/$f" >&2; exit 1; }
+          done
+
+  # Runs only after GitHub's "pages build and deployment" succeeded for a push on main,
+  # i.e. the new site version is live. Creates tags/releases only; no deploy here.
+  release:
+    name: Release
+    permissions:
+      contents: write   # needed to create tags and releases
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the exact commit that was deployed
+      - name: Release | Checkout deployed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Release | Read version from _config.yml
+        id: version
+        run: |
+          VERSION=$(grep -E '^version:' _config.yml | head -1 | sed -E 's/^version:[[:space:]]*//; s/["'\'']//g; s/[[:space:]]+$//')
+          if [ -z "$VERSION" ]; then
+            echo "version not found in _config.yml" >&2
+            exit 1
+          fi
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      # Skips quietly if the version in _config.yml was already released
+      - name: Release | Create tag and GitHub release if missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, skipping."
+          else
+            gh release create "$TAG" --target "$SHA" --title "$TAG" --generate-notes
+          fi

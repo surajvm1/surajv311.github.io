@@ -1,6 +1,7 @@
 ---
 layout: page
 title: Articles
+description: Technical and non-technical articles by Suraj Verma on computer systems & other topics of interest.
 ---
 
 <p class="message">
@@ -12,7 +13,7 @@ title: Articles
   {% for post in site.posts %}
     {% if post.category == "technicalArticles" %}
       <li>
-        <a href="{{ post.url }}">{{ post.title }}</a> - <small>{{ post.date | date_to_string }}</small>
+        <a href="{{ post.url }}">{{ post.title }}</a> - <small>{{ post.date | date_to_string }} &middot; {{ post.content | number_of_words | divided_by: 200 | plus: 1 }} min read</small>
       </li>
     {% endif %}
   {% endfor %}
@@ -23,30 +24,10 @@ title: Articles
   {% for post in site.posts %}
     {% if post.category == "nonTechnicalArticles" %}
       <li>
-        <a href="{{ post.url }}">{{ post.title }}</a> - <small>{{ post.date | date_to_string }}</small>
+        <a href="{{ post.url }}">{{ post.title }}</a> - <small>{{ post.date | date_to_string }} &middot; {{ post.content | number_of_words | divided_by: 200 | plus: 1 }} min read</small>
       </li>
     {% endif %}
   {% endfor %}
 </ul>
-
-[//]: # (### Super-old learnings... )
-
-[//]: # (<ul>)
-
-[//]: # (  {% for post in site.posts %})
-
-[//]: # (    {% if post.category == "oldArticles" %})
-
-[//]: # (      <li>)
-
-[//]: # (        <a href="{{ post.url }}">{{ post.title }}</a> - <small>{{ post.date | date_to_string }}</small>)
-
-[//]: # (      </li>)
-
-[//]: # (    {% endif %})
-
-[//]: # (  {% endfor %})
-
-[//]: # (</ul>)
 
 -----------------------------------

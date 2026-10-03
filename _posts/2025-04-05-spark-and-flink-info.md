@@ -8,6 +8,8 @@ category: technicalArticles
 
 In this article, I have jotted down my understanding around Spark and Flink. 
 
+> Sidenote: These learnings reflect the versions and implementations I have worked on at the time of writing. Spark and Flink evolve quickly, so in newer releases some details may change or no longer apply.
+
 #### Spark 
 
 Basic Architecture: 

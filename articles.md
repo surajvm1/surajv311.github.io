@@ -1,6 +1,7 @@
 ---
 layout: page
 title: Articles
+description: Technical and non-technical articles by Suraj Verma on computer systems & other topics of interest.
 ---
 
 <p class="message">
@@ -28,25 +29,5 @@ title: Articles
     {% endif %}
   {% endfor %}
 </ul>
-
-[//]: # (### Super-old learnings... )
-
-[//]: # (<ul>)
-
-[//]: # (  {% for post in site.posts %})
-
-[//]: # (    {% if post.category == "oldArticles" %})
-
-[//]: # (      <li>)
-
-[//]: # (        <a href="{{ post.url }}">{{ post.title }}</a> - <small>{{ post.date | date_to_string }}</small>)
-
-[//]: # (      </li>)
-
-[//]: # (    {% endif %})
-
-[//]: # (  {% endfor %})
-
-[//]: # (</ul>)
 
 -----------------------------------
